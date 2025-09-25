@@ -3,6 +3,12 @@
     <ion-title>
       Tab 1
     </ion-title>
+    <ion-buttons slot="end">
+      <ion-button id="start-qr-btn" color="primary" (click)="startQrScan?.()">
+        <ion-icon slot="start" name="qr-code-outline"></ion-icon>
+        Scan
+      </ion-button>
+    </ion-buttons>
   </ion-toolbar>
 </ion-header>
 
@@ -13,9 +19,6 @@
     </ion-toolbar>
   </ion-header>
 
-  <ion-button id="start-qr-btn" expand="block" color="primary" (click)="startQrScan?.()">
-    Start QR Scanner
-  </ion-button>
 
   <app-explore-container name="Tab 1 page"></app-explore-container>
 </ion-content>
