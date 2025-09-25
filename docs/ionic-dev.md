@@ -50,3 +50,20 @@ npm i -D -E @capacitor/cli@latest
 ```bash
 npm install -g npm@latest
 ```
+
+## Add QR Scanner button (files needed)
+
+To add a “Start QR Scanner” button in Tab 1, please add these files to the chat so I can patch them:
+
+- mobile-app/package.json
+- mobile-app/capacitor.config.ts
+- mobile-app/src/global.scss
+
+And the Tab 1 page (your project may use one of these paths):
+- mobile-app/src/app/pages/tab1/tab1.page.html
+- mobile-app/src/app/pages/tab1/tab1.page.ts
+- OR
+- mobile-app/src/app/tab1/tab1.page.html
+- mobile-app/src/app/tab1/tab1.page.ts
+
+I will wire up the button and scanner logic using @capacitor-community/barcode-scanner and will not run cap sync (per your request). Please also confirm Tab 1 is the correct location for the button.
