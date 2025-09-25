@@ -67,3 +67,25 @@ And the Tab 1 page (your project may use one of these paths):
 - mobile-app/src/app/tab1/tab1.page.ts
 
 I will wire up the button and scanner logic using @capacitor-community/barcode-scanner and will not run cap sync (per your request). Please also confirm Tab 1 is the correct location for the button.
+
+## Next step to add the button on Tab 1
+
+Please add these files to the chat so I can patch them directly:
+- mobile-app/src/app/pages/tab1/tab1.page.html
+- mobile-app/src/app/pages/tab1/tab1.page.ts
+
+What I will insert:
+- In tab1.page.html (inside ion-content), add:
+```html
+<ion-button expand="block" color="primary" (click)="startQrScan()">
+  Start QR Scanner
+</ion-button>
+```
+
+- In tab1.page.ts, add a placeholder handler (safe stub until plugins are installed):
+```ts
+startQrScan() {
+  // TODO: integrate @capacitor-community/barcode-scanner
+  console.log('Start QR Scanner clicked');
+}
+```
