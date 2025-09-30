@@ -1,0 +1,34 @@
+<main class="container">
+  <h1>Izylife Verifier Portal</h1>
+
+  <section *ngIf="loading" class="panel">
+    <p>Loading verifiable presentation request...</p>
+  </section>
+
+  <section *ngIf="error" class="panel error">
+    <p>{{ error }}</p>
+    <button type="button" (click)="retry()">Retry</button>
+  </section>
+
+  <section *ngIf="qr && !loading" class="panel">
+    <h2>{{ qr.label }}</h2>
+    <p class="instructions">{{ qr.instructions }}</p>
+    <div class="qr-wrapper">
+      <img [src]="qr.qrImageDataUrl" alt="QR code for verifiable presentation request" />
+    </div>
+    <details>
+      <summary>View payload</summary>
+      <code>{{ qr.payload }}</code>
+    </details>
+  </section>
+
+  <section class="panel spid-panel">
+    <h2>Access with SPID</h2>
+    <p class="helper-text">Use the official SPID Smart Button to choose your provider and continue.</p>
+    <div class="spid-login-wrap">
+      <div id="spid-button">
+        <noscript>SPID authentication requires JavaScript to be enabled.</noscript>
+      </div>
+    </div>
+  </section>
+</main>

@@ -1,0 +1,22 @@
+server:
+  port: 9090
+
+app:
+  issuer:
+    organization-name: Izylife Public Authority
+    endpoint: https://issuer.izylife.example.org
+    qr-payload: "ssi://issuer-offer?issuer=IzylifePublicAuthority&template=pa-staff"
+  verifier:
+    endpoint: https://verifier.izylife.example.org
+    challenge: demo-challenge
+    qr-payload: "ssi://vp-request?audience=IzylifeVerifier&challenge=demo-challenge"
+  spid:
+    title: Authenticate with SPID
+    description: Your wallet does not contain the required Izylife credential. Use SPID to continue verification.
+    helper-text: Press the button to open the SPID login experience in a new window.
+    button-label: Continue with SPID
+    login-url: https://spid.izylife.example.org/login
+
+spring:
+  mvc:
+    static-path-pattern: /**

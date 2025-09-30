@@ -1,0 +1,20 @@
+:root {
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #f5f5f5;
+  color: #1f2933;
+}
+
+app-root {
+  display: block;
+  min-height: 100vh;
+}
+
+.spid-login-wrap {
+  display: flex;
+  justify-content: center;
+  margin: 2rem 0;
+}
