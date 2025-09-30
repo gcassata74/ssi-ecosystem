@@ -1,0 +1,75 @@
+<ion-header [translucent]="true">
+  <ion-toolbar>
+    <ion-title>
+      Tab 1
+    </ion-title>
+  </ion-toolbar>
+</ion-header>
+
+<ion-content [fullscreen]="true">
+  <ion-header collapse="condense">
+    <ion-toolbar>
+      <ion-title size="large">Tab 1</ion-title>
+    </ion-toolbar>
+  </ion-header>
+
+  <div class="tab1-content">
+    <ion-card *ngIf="scanResult">
+      <ion-card-header>
+        <ion-card-title>Last scanned data</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-text>{{ scanResult }}</ion-text>
+        <ion-button fill="clear" size="small" (click)="clearScan()">
+          Clear
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card color="success" *ngIf="vpSubmissionMessage">
+      <ion-card-header>
+        <ion-card-title>OIDC4VP response</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-text>{{ vpSubmissionMessage }}</ion-text>
+      </ion-card-content>
+    </ion-card>
+
+    <ion-card color="danger" *ngIf="scanError">
+      <ion-card-header>
+        <ion-card-title>Scanner error</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-text>{{ scanError }}</ion-text>
+        <ion-button fill="clear" size="small" (click)="dismissError()">
+          Dismiss
+        </ion-button>
+      </ion-card-content>
+    </ion-card>
+
+    <div class="qr-scanner" *ngIf="isScanning">
+      <div class="qr-video">
+        <video #videoElement autoplay playsinline muted></video>
+        <div class="qr-target"></div>
+      </div>
+      <ion-button expand="block" fill="outline" color="medium" (click)="stopQrScan()">
+        Stop scanning
+      </ion-button>
+    </div>
+
+    <div class="vp-processing" *ngIf="isProcessingPresentation">
+      <ion-spinner name="dots"></ion-spinner>
+      <ion-text>Preparing verifiable presentation...</ion-text>
+    </div>
+
+    <ion-button
+      expand="block"
+      color="secondary"
+      [disabled]="isScanning"
+      (click)="startQrScan()"
+    >
+      <ion-icon slot="start" name="qr-code-outline"></ion-icon>
+      Start QR scan
+    </ion-button>
+  </div>
+</ion-content>
