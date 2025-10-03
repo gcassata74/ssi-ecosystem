@@ -51,6 +51,30 @@ npm i -D -E @capacitor/cli@latest
 npm install -g npm@latest
 ```
 
+## Android WebView debugging (web-native UI)
+
+1. Enable USB debugging on the Android device/emulator and connect it with `adb`.
+2. Start the app with live reload so the embedded WebView loads local code:
+   ```bash
+   make run-android-live HOST_IP=<your_dev_machine_ip>
+   ```
+   The Ionic CLI must be installed (`npm install -g @ionic/cli`). Set `HOST_IP` to an address reachable by the device (the Makefile auto-detects one for most setups).
+3. Find the active WebView devtools socket:
+   ```bash
+   adb shell cat /proc/net/unix | grep webview_devtools_remote
+   ```
+   Copy the socket name that corresponds to the Ionic app process.
+4. Forward the socket to a local port (defaults to 9222):
+   ```bash
+   make devtools-forward DEVTOOLS_SOCKET=<socket_from_step_3> [DEVTOOLS_PORT=9222]
+   ```
+5. Launch Chrome/Chromium with remote debugging enabled:
+   ```bash
+   make chrome-dev [DEVTOOLS_PORT=9222]
+   ```
+   Set `CHROME_BIN` if the browser is not auto-detected.
+6. Open `http://localhost:9222` (or `chrome://inspect`) to access the WebView devtools.
+
 ## Add QR Scanner button (files needed)
 
 To add a “Start QR Scanner” button in Tab 1, please add these files to the chat so I can patch them:
