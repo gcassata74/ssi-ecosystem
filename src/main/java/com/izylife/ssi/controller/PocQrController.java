@@ -1,50 +1,30 @@
 package com.izylife.ssi.controller;
 
 import com.izylife.ssi.dto.PocQrResponse;
+import com.izylife.ssi.service.Oidc4VpRequestService;
 import com.izylife.ssi.service.QrCodeService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
-import java.util.LinkedHashMap;
-import java.util.Map;
-import java.util.UUID;
-import java.util.stream.Collectors;
-
 @RestController
 @RequestMapping(path = "/api/poc", produces = MediaType.APPLICATION_JSON_VALUE)
 public class PocQrController {
 
     private final QrCodeService qrCodeService;
+    private final Oidc4VpRequestService oidc4VpRequestService;
 
-    public PocQrController(QrCodeService qrCodeService) {
+    public PocQrController(QrCodeService qrCodeService, Oidc4VpRequestService oidc4VpRequestService) {
         this.qrCodeService = qrCodeService;
+        this.oidc4VpRequestService = oidc4VpRequestService;
     }
 
     @GetMapping("/vp-request")
     public PocQrResponse getTestVpRequestQr() {
-        String state = UUID.randomUUID().toString();
-        String nonce = "demo-nonce-" + state.substring(0, 8);
+        Oidc4VpRequestService.AuthorizationRequest authorizationRequest = oidc4VpRequestService.createAuthorizationRequest();
 
-        Map<String, String> params = new LinkedHashMap<>();
-        params.put("client_id", "https://verifier.izylife.example.org/callback");
-        params.put("client_id_scheme", "redirect_uri");
-        params.put("request_uri", "https://verifier.izylife.example.org/oidc4vp/requests/" + state);
-        params.put("response_type", "vp_token");
-        params.put("response_mode", "direct_post");
-        params.put("scope", "openid");
-        params.put("nonce", nonce);
-        params.put("state", state);
-        params.put("presentation_definition_uri", "https://verifier.izylife.example.org/definitions/staff-credential.json");
-
-        String query = params.entrySet().stream()
-                .map(entry -> entry.getKey() + "=" + URLEncoder.encode(entry.getValue(), StandardCharsets.UTF_8))
-                .collect(Collectors.joining("&"));
-
-        String payload = "openid://?" + query;
+        String payload = authorizationRequest.qrPayload();
 
         String instructions = "OIDC4VP Authorization Request\n" +
                 "1. Scan with an OIDC4VP-capable wallet.\n" +

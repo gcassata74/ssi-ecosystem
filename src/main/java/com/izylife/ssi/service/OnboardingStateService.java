@@ -2,7 +2,6 @@ package com.izylife.ssi.service;
 
 import com.izylife.ssi.config.AppProperties;
 import com.izylife.ssi.dto.OnboardingQrResponse;
-import com.izylife.ssi.spid.SpidIntegrationService;
 import org.springframework.stereotype.Service;
 
 import java.util.Optional;
@@ -13,36 +12,28 @@ public class OnboardingStateService {
 
     public enum OnboardingStep {
         VP_REQUEST,
-        ISSUER_QR,
-        SPID_AUTH
+        ISSUER_QR
     }
 
     private final AtomicReference<OnboardingStep> currentStep = new AtomicReference<>(OnboardingStep.VP_REQUEST);
     private final AppProperties appProperties;
     private final QrCodeService qrCodeService;
-    private final SpidIntegrationService spidIntegrationService;
 
-    public OnboardingStateService(AppProperties appProperties, QrCodeService qrCodeService, SpidIntegrationService spidIntegrationService) {
+    public OnboardingStateService(AppProperties appProperties, QrCodeService qrCodeService) {
         this.appProperties = appProperties;
         this.qrCodeService = qrCodeService;
-        this.spidIntegrationService = spidIntegrationService;
     }
 
     public OnboardingQrResponse getCurrentQr() {
         OnboardingStep step = currentStep.get();
         return switch (step) {
             case ISSUER_QR -> buildIssuerQr();
-            case SPID_AUTH -> buildSpidAuth();
             case VP_REQUEST -> buildVerifierQr();
         };
     }
 
     public void showIssuerQr() {
         currentStep.set(OnboardingStep.ISSUER_QR);
-    }
-
-    public void showSpidAuth() {
-        currentStep.set(OnboardingStep.SPID_AUTH);
     }
 
     public void showVerifierQr() {
@@ -81,40 +72,6 @@ public class OnboardingStateService {
         );
     }
 
-    private OnboardingQrResponse buildSpidAuth() {
-        AppProperties.SpidProperties spidProperties = Optional.ofNullable(appProperties.getSpid())
-                .orElseGet(AppProperties.SpidProperties::new);
-
-        String title = Optional.ofNullable(spidProperties.getTitle())
-                .filter(value -> !value.isBlank())
-                .orElse("Authenticate with SPID");
-        String description = Optional.ofNullable(spidProperties.getDescription())
-                .filter(value -> !value.isBlank())
-                .orElse("Your wallet does not contain the required Izylife credential. Authenticate with SPID to continue.");
-        String helperText = Optional.ofNullable(spidProperties.getHelperText())
-                .filter(value -> !value.isBlank())
-                .orElse("Click the button below to open the SPID login page.");
-        String actionLabel = Optional.ofNullable(spidProperties.getButtonLabel())
-                .filter(value -> !value.isBlank())
-                .orElse("Continue with SPID");
-        String actionUrl = Optional.ofNullable(spidProperties.getLoginUrl())
-                .filter(value -> !value.isBlank())
-                .orElse("https://spid.izylife.example.org/login");
-
-        OnboardingQrResponse response = new OnboardingQrResponse(
-                OnboardingStep.SPID_AUTH.name(),
-                title,
-                description,
-                helperText,
-                null,
-                null,
-                actionLabel,
-                actionUrl
-        );
-        response.setSpidProviders(spidIntegrationService.loadProviders());
-        return response;
-    }
-
     private String resolveVerifierPayload() {
         return Optional.ofNullable(appProperties.getVerifier())
                 .map(AppProperties.VerifierProperties::getQrPayload)
@@ -123,7 +80,7 @@ public class OnboardingStateService {
                     String endpoint = Optional.ofNullable(appProperties.getVerifier())
                             .map(AppProperties.VerifierProperties::getEndpoint)
                             .filter(value -> !value.isBlank())
-                            .orElse("https://verifier.izylife.example.org");
+                            .orElse("http://verifier.izylife.com:9090");
                     String challenge = resolveVerifierChallenge();
                     if (challenge.isBlank()) {
                         challenge = "demo-challenge";
@@ -147,7 +104,7 @@ public class OnboardingStateService {
                     String endpoint = Optional.ofNullable(appProperties.getIssuer())
                             .map(AppProperties.IssuerProperties::getEndpoint)
                             .filter(value -> !value.isBlank())
-                            .orElse("https://issuer.izylife.example.org");
+                            .orElse("http://issuer.izylife.com:9090");
                     return "ssi://issuer-offer?issuer=" + endpoint;
                 });
     }

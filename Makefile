@@ -32,3 +32,6 @@ run-angular-client:
 run-spring-boot-server:
 	cd backend && MAVEN_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005" mvn spring-boot:run
 
+run-ngrok:
+	ngrok config add-authtoken 33SSQOjcmhp8GLdSgYIFtT2U8su_3vd1F3EUh61ffkEEwMUC && \
+	ngrok http 9090

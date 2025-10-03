@@ -4,19 +4,34 @@ server:
 app:
   issuer:
     organization-name: Izylife Public Authority
-    endpoint: https://issuer.izylife.example.org
+    endpoint: ${APP_ISSUER_ENDPOINT:http://issuer.izylife.com:9090}
     qr-payload: "ssi://issuer-offer?issuer=IzylifePublicAuthority&template=pa-staff"
   verifier:
-    endpoint: https://verifier.izylife.example.org
+    endpoint: ${APP_VERIFIER_ENDPOINT:http://verifier.izylife.com:9090}
     challenge: demo-challenge
     qr-payload: "ssi://vp-request?audience=IzylifeVerifier&challenge=demo-challenge"
-  spid:
-    title: Authenticate with SPID
-    description: Your wallet does not contain the required Izylife credential. Use SPID to continue verification.
-    helper-text: Press the button to open the SPID login experience in a new window.
-    button-label: Continue with SPID
-    login-url: https://spid.izylife.example.org/login
-
+    client-id: ${APP_VERIFIER_CLIENT_ID:http://verifier.izylife.com:9090/oidc4vp/responses}
+    client-id-scheme: redirect_uri
+    response-mode: direct_post
+    request-audience: https://self-issued.me/v2
+    presentation-definition-id: staff-credential
+    signing-key:
+      kid: demo-verifier-key
+      kty: EC
+      crv: P-256
+      x: hVx-X9SsBBdC7TEzEo0mr5JvDifiW8ukP-dtmzYn1gs
+      y: 0bYC51lu9R37eLSgtdK9gQLxjYMNgNcHapcq8xZ9YjI
+      d: pSxjopWQyhwMpCpJ9OJ4uRi41-0usfuzEHhLul1PccE
+      alg: ES256
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+      - http://localhost:8080
+      - https://staff-credentials.com
+      - https://wallet.staff-credentials.com
+      - https://*.staff-credentials.com
+      - https://*.ngrok-free.app
+    allow-credentials: false
 spring:
   mvc:
     static-path-pattern: /**

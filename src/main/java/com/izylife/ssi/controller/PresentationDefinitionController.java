@@ -22,6 +22,7 @@ public class PresentationDefinitionController {
         }
         return ResponseEntity.ok()
                 .cacheControl(CacheControl.noCache())
+                .contentType(MediaType.APPLICATION_JSON)
                 .body(staffDefinition);
     }
 }

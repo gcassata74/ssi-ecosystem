@@ -1,9 +1,5 @@
 package com.izylife.ssi.dto;
 
-import com.izylife.ssi.spid.SpidProvider;
-
-import java.util.List;
-
 public class OnboardingQrResponse {
 
     private String step;
@@ -14,7 +10,6 @@ public class OnboardingQrResponse {
     private String qrCodeImageDataUrl;
     private String actionLabel;
     private String actionUrl;
-    private List<SpidProvider> spidProviders;
 
     public OnboardingQrResponse() {
     }
@@ -98,11 +93,4 @@ public class OnboardingQrResponse {
         this.actionUrl = actionUrl;
     }
 
-    public List<SpidProvider> getSpidProviders() {
-        return spidProviders;
-    }
-
-    public void setSpidProviders(List<SpidProvider> spidProviders) {
-        this.spidProviders = spidProviders;
-    }
 }

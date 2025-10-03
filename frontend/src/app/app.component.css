@@ -75,22 +75,3 @@ code {
   font-size: 0.95rem;
   word-break: break-all;
 }
-
-.spid-panel h2 {
-  margin-bottom: 0.75rem;
-}
-
-.helper-text {
-  margin: 0 auto 1.25rem;
-  color: #475569;
-}
-
-.spid-login-wrap {
-  display: flex;
-  justify-content: center;
-}
-
-#spid-button {
-  width: 100%;
-  max-width: 420px;
-}

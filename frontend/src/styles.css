@@ -12,9 +12,3 @@ app-root {
   display: block;
   min-height: 100vh;
 }
-
-.spid-login-wrap {
-  display: flex;
-  justify-content: center;
-  margin: 2rem 0;
-}
