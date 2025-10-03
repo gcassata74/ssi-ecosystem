@@ -37,6 +37,7 @@ describe('DidService', () => {
 
     spyOn(SecureStoragePlugin, 'set').and.callFake(async ({ key, value }) => {
       storage[key] = value;
+      return { value: true };
     });
 
     keyServiceStub = jasmine.createSpyObj<KeyService>('KeyService', ['ensureKeyPair']);

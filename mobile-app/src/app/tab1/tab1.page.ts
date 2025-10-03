@@ -19,6 +19,7 @@ import { ExploreContainerComponent } from '../explore-container/explore-containe
 import { Capacitor } from '@capacitor/core';
 import { Camera, CameraPermissionState } from '@capacitor/camera';
 import { Oidc4vpService } from '../services/oidc4vp.service';
+import { of } from 'rxjs';
 
 @Component({
   selector: 'app-tab1',
@@ -104,6 +105,15 @@ export class Tab1Page implements OnDestroy {
       this.stopQrScan();
     }
   }
+
+  /*public testScan(fake?: string): void {
+    const demo = fake ?? 'openid://?client_id=http%3A%2F%2Fverifier.izylife.com%3A9090%2Foidc4vp%2Fresponses&client_id_scheme=redirect_uri&request_uri=https%3A%2F%2Fmica-semicivilized-heavily.ngrok-free.dev%2Foidc4vp%2Frequests%2Fdb8f329a-8c5d-4483-978c-128091e7a222&response_type=vp_token&response_mode=direct_post&scope=openid&nonce=nonce-db8f329a&state=db8f329a-8c5d-4483-978c-128091e7a222&presentation_definition_uri=https%3A%2F%2Fmica-semicivilized-heavily.ngrok-free.dev%2Fdefinitions%2Fstaff-credential.json';
+    this.ngZone.run(() => {
+      this.stopQrScan();                 // ensure no camera loop is running
+      void this.processScanResult(demo); // reuse the real handler
+    });
+  }*/
+
 
   stopQrScan(): void {
     if (this.scanAnimationId !== undefined) {
