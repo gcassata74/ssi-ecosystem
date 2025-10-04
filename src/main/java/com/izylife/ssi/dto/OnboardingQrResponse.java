@@ -1,5 +1,10 @@
 package com.izylife.ssi.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class OnboardingQrResponse {
 
     private String step;
@@ -28,69 +33,4 @@ public class OnboardingQrResponse {
         this.actionLabel = actionLabel;
         this.actionUrl = actionUrl;
     }
-
-    public String getStep() {
-        return step;
-    }
-
-    public void setStep(String step) {
-        this.step = step;
-    }
-
-    public String getTitle() {
-        return title;
-    }
-
-    public void setTitle(String title) {
-        this.title = title;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public String getHelperText() {
-        return helperText;
-    }
-
-    public void setHelperText(String helperText) {
-        this.helperText = helperText;
-    }
-
-    public String getQrCodePayload() {
-        return qrCodePayload;
-    }
-
-    public void setQrCodePayload(String qrCodePayload) {
-        this.qrCodePayload = qrCodePayload;
-    }
-
-    public String getQrCodeImageDataUrl() {
-        return qrCodeImageDataUrl;
-    }
-
-    public void setQrCodeImageDataUrl(String qrCodeImageDataUrl) {
-        this.qrCodeImageDataUrl = qrCodeImageDataUrl;
-    }
-
-    public String getActionLabel() {
-        return actionLabel;
-    }
-
-    public void setActionLabel(String actionLabel) {
-        this.actionLabel = actionLabel;
-    }
-
-    public String getActionUrl() {
-        return actionUrl;
-    }
-
-    public void setActionUrl(String actionUrl) {
-        this.actionUrl = actionUrl;
-    }
-
 }

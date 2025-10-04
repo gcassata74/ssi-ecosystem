@@ -1,47 +1,24 @@
 package com.izylife.ssi.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.constraints.NotBlank;
+import lombok.Getter;
+import lombok.Setter;
 
+@Getter
+@Setter
 public class VerifyPresentationRequest {
+    @JsonProperty("presentation_payload")
     @NotBlank
     private String presentationPayload;
 
+    @JsonProperty("challenge")
     @NotBlank
     private String challenge;
 
+    @JsonProperty("presentation_submission")
     private String presentationSubmission;
 
+    @JsonProperty("state")
     private String state;
-
-    public String getPresentationPayload() {
-        return presentationPayload;
-    }
-
-    public void setPresentationPayload(String presentationPayload) {
-        this.presentationPayload = presentationPayload;
-    }
-
-    public String getChallenge() {
-        return challenge;
-    }
-
-    public void setChallenge(String challenge) {
-        this.challenge = challenge;
-    }
-
-    public String getPresentationSubmission() {
-        return presentationSubmission;
-    }
-
-    public void setPresentationSubmission(String presentationSubmission) {
-        this.presentationSubmission = presentationSubmission;
-    }
-
-    public String getState() {
-        return state;
-    }
-
-    public void setState(String state) {
-        this.state = state;
-    }
 }

@@ -22,7 +22,7 @@ public class Oidc4VpRequestController {
     }
 
     @GetMapping(value = "/requests/{requestId}", produces = "application/oauth-authz-req+jwt")
-    public ResponseEntity<String> getSignedRequestObject(@PathVariable String requestId) {
+    public ResponseEntity<String> getSignedRequestObject(@PathVariable("requestId") String requestId) {
         return requestService.getRequestObject(requestId)
                 .map(body -> ResponseEntity.ok()
                         .contentType(MediaType.valueOf("application/oauth-authz-req+jwt"))
@@ -35,4 +35,3 @@ public class Oidc4VpRequestController {
         return requestService.getPublicJwkSet().toJSONObject();
     }
 }
-

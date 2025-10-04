@@ -45,6 +45,16 @@ The build sequence is:
 4. Copy the generated assets into `target/classes/static` so Spring Boot can serve the SPA.
 5. Package the executable JAR `target/ssi-issuer-verifier-0.0.1-SNAPSHOT.jar`.
 
+## Persistence
+
+The backend now stores tenant registrations in MongoDB. By default it connects to `mongodb://localhost:27017/ssi-issuer-verifier`, which works with a local Docker container:
+
+```bash
+docker run --name ssi-mongo -p 27017:27017 -d mongo:7
+```
+
+Override the defaults with `SPRING_DATA_MONGODB_URI` and `SPRING_DATA_MONGODB_DATABASE`.
+
 ### Run the packaged app
 
 ```bash
@@ -58,6 +68,8 @@ Open `http://localhost:8080` to access the Izylife issuer/verifier portal.
 - `GET /api/credentials/templates` – Retrieve available credential templates with required claim fields.
 - `POST /api/credentials/issue` – Issue a credential (demo implementation returns a Base64 payload and QR seed).
 - `POST /api/verification/presentations` – Verify a presentation challenge (demo validation over encoded payload).
+- `GET /api/tenants` – List registered tenants.
+- `POST /api/tenants` – Register a new tenant (name + contact email, optional description).
 
 > ⚠️ The current services contain demo logic only; integrate with your actual SSI agent or ledger to replace the placeholders.
 

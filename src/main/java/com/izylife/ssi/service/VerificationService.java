@@ -2,13 +2,16 @@ package com.izylife.ssi.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.izylife.ssi.config.AppProperties;
 import com.izylife.ssi.dto.VerifyPresentationRequest;
 import com.izylife.ssi.dto.VerifyPresentationResponse;
 import org.springframework.stereotype.Service;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.LinkedHashSet;
 import java.util.Locale;
+import java.util.Set;
 
 @Service
 public class VerificationService {
@@ -17,10 +20,19 @@ public class VerificationService {
 
     private final OnboardingStateService onboardingStateService;
     private final ObjectMapper objectMapper;
+    private final Set<String> requiredDescriptorIds;
+    private final String expectedDefinitionId;
 
-    public VerificationService(OnboardingStateService onboardingStateService, ObjectMapper objectMapper) {
+    public VerificationService(
+            OnboardingStateService onboardingStateService,
+            ObjectMapper objectMapper,
+            Oidc4VpRequestService oidc4VpRequestService,
+            AppProperties appProperties
+    ) {
         this.onboardingStateService = onboardingStateService;
         this.objectMapper = objectMapper;
+        this.requiredDescriptorIds = oidc4VpRequestService.getInputDescriptorIds();
+        this.expectedDefinitionId = appProperties.getVerifier().getPresentationDefinitionId();
     }
 
     public VerifyPresentationResponse verifyPresentation(VerifyPresentationRequest request) {
@@ -75,8 +87,38 @@ public class VerificationService {
         }
         try {
             JsonNode submission = objectMapper.readTree(request.getPresentationSubmission());
+            if (!expectedDefinitionId.equals(submission.path("definition_id").asText(null))) {
+                return false;
+            }
+
             JsonNode descriptorMap = submission.path("descriptor_map");
-            return descriptorMap.isArray() && descriptorMap.size() > 0;
+            if (!descriptorMap.isArray() || descriptorMap.isEmpty()) {
+                return false;
+            }
+
+            Set<String> mappedIds = new LinkedHashSet<>();
+            for (JsonNode descriptor : descriptorMap) {
+                if (descriptor == null || !descriptor.isObject()) {
+                    return false;
+                }
+                String id = descriptor.path("id").asText(null);
+                if (id == null || id.isBlank()) {
+                    return false;
+                }
+                if (!requiredDescriptorIds.contains(id)) {
+                    return false;
+                }
+                if (!mappedIds.add(id)) {
+                    return false;
+                }
+                String format = descriptor.path("format").asText(null);
+                String path = descriptor.path("path").asText(null);
+                if (format == null || format.isBlank() || path == null || path.isBlank()) {
+                    return false;
+                }
+            }
+
+            return mappedIds.containsAll(requiredDescriptorIds);
         } catch (Exception ex) {
             return false;
         }

@@ -1,7 +1,10 @@
 package com.izylife.ssi.model;
 
+import lombok.Getter;
+
 import java.util.List;
 
+@Getter
 public class CredentialTemplate {
     private String id;
     private String name;
@@ -13,21 +16,5 @@ public class CredentialTemplate {
         this.name = name;
         this.description = description;
         this.claims = claims;
-    }
-
-    public String getId() {
-        return id;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public List<String> getClaims() {
-        return claims;
     }
 }

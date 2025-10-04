@@ -77,16 +77,20 @@ public class OnboardingStateService {
                 .map(AppProperties.VerifierProperties::getQrPayload)
                 .filter(value -> !value.isBlank())
                 .orElseGet(() -> {
-                    String endpoint = Optional.ofNullable(appProperties.getVerifier())
-                            .map(AppProperties.VerifierProperties::getEndpoint)
-                            .filter(value -> !value.isBlank())
-                            .orElse("http://verifier.izylife.com:9090");
+                    String endpoint = resolveVerifierEndpoint();
                     String challenge = resolveVerifierChallenge();
                     if (challenge.isBlank()) {
                         challenge = "demo-challenge";
                     }
                     return "ssi://vp-request?audience=" + endpoint + "&challenge=" + challenge;
                 });
+    }
+
+    private String resolveVerifierEndpoint() {
+        return Optional.ofNullable(appProperties.getVerifier())
+                .map(AppProperties.VerifierProperties::getEndpoint)
+                .filter(value -> !value.isBlank())
+                .orElseThrow(() -> new IllegalStateException("Verifier endpoint configuration is missing"));
     }
 
     private String resolveVerifierChallenge() {

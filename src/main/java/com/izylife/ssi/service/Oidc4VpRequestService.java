@@ -26,10 +26,13 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.Date;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -46,6 +49,7 @@ public class Oidc4VpRequestService {
     private final JWKSet publicJwkSet;
     private final JsonNode presentationDefinition;
     private final ConcurrentMap<String, AuthorizationSession> sessions = new ConcurrentHashMap<>();
+    private final Set<String> inputDescriptorIds;
 
     public Oidc4VpRequestService(AppProperties appProperties, ObjectMapper objectMapper) throws IOException, JOSEException {
         this.appProperties = appProperties;
@@ -59,6 +63,7 @@ public class Oidc4VpRequestService {
                 : JWSAlgorithm.ES256;
         this.publicJwkSet = new JWKSet(signerKey.toPublicJWK());
         this.presentationDefinition = loadPresentationDefinition(appProperties.getVerifier().getPresentationDefinitionId());
+        this.inputDescriptorIds = Collections.unmodifiableSet(extractInputDescriptorIds(this.presentationDefinition));
     }
 
     public AuthorizationRequest createAuthorizationRequest() {
@@ -131,6 +136,10 @@ public class Oidc4VpRequestService {
         return presentationDefinition;
     }
 
+    public Set<String> getInputDescriptorIds() {
+        return inputDescriptorIds;
+    }
+
     public JWKSet getPublicJwkSet() {
         return publicJwkSet;
     }
@@ -198,6 +207,29 @@ public class Oidc4VpRequestService {
             throw new IOException("Presentation definition resource not found: " + path);
         }
         return objectMapper.readTree(resource.getInputStream());
+    }
+
+    private Set<String> extractInputDescriptorIds(JsonNode definition) {
+        Set<String> ids = new LinkedHashSet<>();
+        if (definition == null) {
+            return ids;
+        }
+        JsonNode descriptors = definition.get("input_descriptors");
+        if (descriptors != null && descriptors.isArray()) {
+            for (JsonNode descriptor : descriptors) {
+                if (descriptor == null) {
+                    continue;
+                }
+                JsonNode idNode = descriptor.get("id");
+                if (idNode != null) {
+                    String id = idNode.asText(null);
+                    if (id != null && !id.isBlank()) {
+                        ids.add(id);
+                    }
+                }
+            }
+        }
+        return ids;
     }
 
     private static ECKey buildSigningKey(SigningKeyProperties properties) throws JOSEException {

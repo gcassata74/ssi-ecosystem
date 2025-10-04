@@ -10,7 +10,7 @@ app:
     endpoint: ${APP_VERIFIER_ENDPOINT:http://verifier.izylife.com:9090}
     challenge: demo-challenge
     qr-payload: "ssi://vp-request?audience=IzylifeVerifier&challenge=demo-challenge"
-    client-id: ${APP_VERIFIER_CLIENT_ID:http://verifier.izylife.com:9090/oidc4vp/responses}
+    client-id: ${APP_VERIFIER_ENDPOINT:http://verifier.izylife.com:9090}/oidc4vp/responses
     client-id-scheme: redirect_uri
     response-mode: direct_post
     request-audience: https://self-issued.me/v2
@@ -33,5 +33,9 @@ app:
       - https://*.ngrok-free.app
     allow-credentials: false
 spring:
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/ssi-issuer-verifier}
+      database: ${SPRING_DATA_MONGODB_DATABASE:ssi-issuer-verifier}
   mvc:
     static-path-pattern: /**

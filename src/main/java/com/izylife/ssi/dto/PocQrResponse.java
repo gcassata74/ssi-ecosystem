@@ -1,5 +1,10 @@
 package com.izylife.ssi.dto;
 
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
 public class PocQrResponse {
 
     private String label;
@@ -14,38 +19,6 @@ public class PocQrResponse {
         this.label = label;
         this.instructions = instructions;
         this.payload = payload;
-        this.qrImageDataUrl = qrImageDataUrl;
-    }
-
-    public String getLabel() {
-        return label;
-    }
-
-    public void setLabel(String label) {
-        this.label = label;
-    }
-
-    public String getInstructions() {
-        return instructions;
-    }
-
-    public void setInstructions(String instructions) {
-        this.instructions = instructions;
-    }
-
-    public String getPayload() {
-        return payload;
-    }
-
-    public void setPayload(String payload) {
-        this.payload = payload;
-    }
-
-    public String getQrImageDataUrl() {
-        return qrImageDataUrl;
-    }
-
-    public void setQrImageDataUrl(String qrImageDataUrl) {
         this.qrImageDataUrl = qrImageDataUrl;
     }
 }
