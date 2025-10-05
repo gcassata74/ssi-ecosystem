@@ -62,7 +62,8 @@ public class Oidc4VpResponseController {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing OIDC4VP submission body");
         }
 
-        String state = submission.getState();
+        VpTokenPayload vpToken = extractVpTokenPayload(submission.getVpToken());
+        String state = StringUtils.hasText(submission.getState()) ? submission.getState() : vpToken.state();
         if (!StringUtils.hasText(state)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing state parameter");
         }
@@ -70,7 +71,9 @@ public class Oidc4VpResponseController {
         AuthorizationSession session = oidc4VpRequestService.resolveSession(state)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unknown or expired authorization request"));
 
-        VpTokenPayload vpToken = extractVpTokenPayload(submission.getVpToken());
+        if (StringUtils.hasText(vpToken.state()) && !state.equals(vpToken.state())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "state value in vp_token does not match the authorization request");
+        }
         JsonNode presentationSubmission = parseJson(submission.getPresentationSubmission(), "presentation_submission");
         validateDescriptorDefinition(presentationSubmission);
 
@@ -152,6 +155,8 @@ public class Oidc4VpResponseController {
         submission.setVpToken(firstValue(formData, "vp_token"));
         submission.setPresentationSubmission(firstValue(formData, "presentation_submission"));
         submission.setState(firstValue(formData, "state"));
+        submission.setClientId(firstValue(formData, "client_id"));
+        submission.setNonce(firstValue(formData, "nonce"));
         return submission;
     }
 
@@ -191,7 +196,8 @@ public class Oidc4VpResponseController {
             }
             String normalizedPresentation = objectMapper.writeValueAsString(vpNode);
             String nonce = claims.getStringClaim("nonce");
-            return new VpTokenPayload(normalizedPresentation, nonce);
+            String state = claims.getStringClaim("state");
+            return new VpTokenPayload(normalizedPresentation, nonce, state);
         } catch (ParseException ex) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Failed to parse vp_token as JWT", ex);
         } catch (ResponseStatusException ex) {
@@ -201,6 +207,6 @@ public class Oidc4VpResponseController {
         }
     }
 
-    private record VpTokenPayload(String presentation, String nonce) {
+    private record VpTokenPayload(String presentation, String nonce, String state) {
     }
 }

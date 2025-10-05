@@ -2,6 +2,8 @@ package com.izylife.ssi.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.izylife.ssi.config.AppProperties;
 import com.izylife.ssi.config.AppProperties.SigningKeyProperties;
 import com.nimbusds.jose.JOSEException;
@@ -34,8 +36,6 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 @Service
 public class Oidc4VpRequestService {
@@ -48,7 +48,9 @@ public class Oidc4VpRequestService {
     private final JWSAlgorithm signingAlgorithm;
     private final JWKSet publicJwkSet;
     private final JsonNode presentationDefinition;
-    private final ConcurrentMap<String, AuthorizationSession> sessions = new ConcurrentHashMap<>();
+    private final Cache<String, AuthorizationSession> sessions = Caffeine.newBuilder()
+            .expireAfterWrite(DEFAULT_REQUEST_TTL)
+            .build();
     private final Set<String> inputDescriptorIds;
 
     public Oidc4VpRequestService(AppProperties appProperties, ObjectMapper objectMapper) throws IOException, JOSEException {
@@ -111,25 +113,31 @@ public class Oidc4VpRequestService {
     }
 
     public Optional<String> getRequestObject(String requestId) {
-        AuthorizationSession session = sessions.get(requestId);
-        if (session == null || session.isExpired()) {
-            sessions.remove(requestId);
+        AuthorizationSession session = sessions.getIfPresent(requestId);
+        if (session == null) {
+            return Optional.empty();
+        }
+        if (session.isExpired()) {
+            sessions.invalidate(requestId);
             return Optional.empty();
         }
         return Optional.of(session.requestObject());
     }
 
     public Optional<AuthorizationSession> resolveSession(String state) {
-        AuthorizationSession session = sessions.get(state);
-        if (session == null || session.isExpired()) {
-            sessions.remove(state);
+        AuthorizationSession session = sessions.getIfPresent(state);
+        if (session == null) {
+            return Optional.empty();
+        }
+        if (session.isExpired()) {
+            sessions.invalidate(state);
             return Optional.empty();
         }
         return Optional.of(session);
     }
 
     public void consumeSession(String state) {
-        sessions.remove(state);
+        sessions.invalidate(state);
     }
 
     public JsonNode getPresentationDefinition() {

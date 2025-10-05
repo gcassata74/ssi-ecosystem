@@ -17,4 +17,9 @@ public class Oidc4VpSubmission {
     @JsonProperty("state")
     private String state;
 
+    @JsonProperty("client_id")
+    private String clientId;
+
+    @JsonProperty("nonce")
+    private String nonce;
 }
