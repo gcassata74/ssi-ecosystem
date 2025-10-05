@@ -35,6 +35,15 @@
       </ion-card-content>
     </ion-card>
 
+    <ion-card color="success" *ngIf="vcIssuanceMessage">
+      <ion-card-header>
+        <ion-card-title>OIDC4VC issuance</ion-card-title>
+      </ion-card-header>
+      <ion-card-content>
+        <ion-text>{{ vcIssuanceMessage }}</ion-text>
+      </ion-card-content>
+    </ion-card>
+
     <ion-card color="danger" *ngIf="scanError">
       <ion-card-header>
         <ion-card-title>Scanner error</ion-card-title>
@@ -60,6 +69,11 @@
     <div class="vp-processing" *ngIf="isProcessingPresentation">
       <ion-spinner name="dots"></ion-spinner>
       <ion-text>Preparing verifiable presentation...</ion-text>
+    </div>
+
+    <div class="vp-processing" *ngIf="isProcessingIssuance">
+      <ion-spinner name="dots"></ion-spinner>
+      <ion-text>Retrieving credential from issuer...</ion-text>
     </div>
 
     <ion-button

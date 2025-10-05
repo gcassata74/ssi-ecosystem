@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common';
 import { Component, ElementRef, NgZone, OnDestroy, ViewChild, inject } from '@angular/core';
 import {
   IonButton,
-  IonButtons,
   IonCard,
   IonCardContent,
   IonCardHeader,
@@ -18,6 +17,7 @@ import {
 import { ExploreContainerComponent } from '../explore-container/explore-container.component';
 import { Capacitor } from '@capacitor/core';
 import { Camera, CameraPermissionState } from '@capacitor/camera';
+import { Oidc4vcService } from '../services/oidc4vc.service';
 import { Oidc4vpService } from '../services/oidc4vp.service';
 import { of } from 'rxjs';
 
@@ -31,7 +31,6 @@ import { of } from 'rxjs';
     IonToolbar,
     IonTitle,
     IonContent,
-    IonButtons,
     IonButton,
     IonIcon,
     IonSpinner,
@@ -48,14 +47,17 @@ export class Tab1Page implements OnDestroy {
   isScanning = false;
   scanResult?: string;
   vpSubmissionMessage?: string;
+  vcIssuanceMessage?: string;
   scanError?: string;
   isProcessingPresentation = false;
+  isProcessingIssuance = false;
 
   private activeStream?: MediaStream;
   private detector?: BarcodeDetectorLike;
   private scanAnimationId?: number;
   private readonly ngZone = inject(NgZone);
   private readonly oidc4vpService = inject(Oidc4vpService);
+  private readonly oidc4vcService = inject(Oidc4vcService);
 
   async startQrScan(): Promise<void> {
     if (this.isScanning) {
@@ -64,7 +66,9 @@ export class Tab1Page implements OnDestroy {
 
     this.scanError = undefined;
     this.vpSubmissionMessage = undefined;
+    this.vcIssuanceMessage = undefined;
     this.isProcessingPresentation = false;
+    this.isProcessingIssuance = false;
     this.isScanning = true;
 
     try {
@@ -139,8 +143,10 @@ export class Tab1Page implements OnDestroy {
   clearScan(): void {
     this.scanResult = undefined;
     this.vpSubmissionMessage = undefined;
+    this.vcIssuanceMessage = undefined;
     this.scanError = undefined;
     this.isProcessingPresentation = false;
+    this.isProcessingIssuance = false;
   }
 
   dismissError(): void {
@@ -195,24 +201,47 @@ export class Tab1Page implements OnDestroy {
     this.scanResult = data;
     this.scanError = undefined;
     this.vpSubmissionMessage = undefined;
+    this.vcIssuanceMessage = undefined;
 
     if (!data) {
       this.scanError = 'QR code did not contain data.';
       return;
     }
 
-    if (!this.oidc4vpService.isOidc4vpUri(data)) {
+    if (this.oidc4vpService.isOidc4vpUri(data)) {
+      await this.handlePresentationSubmission(data);
       return;
     }
 
+    if (this.oidc4vcService.isOidc4vcUri(data)) {
+      await this.handleCredentialOffer(data);
+      return;
+    }
+  }
+
+  private async handlePresentationSubmission(uri: string): Promise<void> {
     this.isProcessingPresentation = true;
+    this.scanError = undefined;
     try {
-      const result = await this.oidc4vpService.submitPresentationFromUri(data);
+      const result = await this.oidc4vpService.submitPresentationFromUri(uri);
       this.vpSubmissionMessage = `Submitted VP to ${result.responseUri} with ${result.credentialCount} credential(s).`;
     } catch (error) {
       this.scanError = this.stringifyError(error);
     } finally {
       this.isProcessingPresentation = false;
+    }
+  }
+
+  private async handleCredentialOffer(uri: string): Promise<void> {
+    this.isProcessingIssuance = true;
+    this.scanError = undefined;
+    try {
+      const result = await this.oidc4vcService.acceptCredentialOfferFromUri(uri);
+      this.vcIssuanceMessage = `Stored ${result.credentialCount} credential(s) from ${result.issuer}.`;
+    } catch (error) {
+      this.scanError = this.stringifyError(error);
+    } finally {
+      this.isProcessingIssuance = false;
     }
   }
 

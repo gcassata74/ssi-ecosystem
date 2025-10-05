@@ -178,7 +178,7 @@ describe('Oidc4vpService', () => {
     expect(ensureKeyPairSpy).toHaveBeenCalled();
   });
 
-  it('rejects when no credentials satisfy the definition', async () => {
+  it('responds with an empty VP token when no credentials satisfy the definition', async () => {
     listVerifiableCredentialsSpy.and.resolveTo([]);
 
     const responseUri = 'https://portal.example/no-credentials-response';
@@ -190,9 +190,40 @@ describe('Oidc4vpService', () => {
       `openid4vp://?response_uri=${encodeURIComponent(responseUri)}` +
       `&presentation_definition=${encodeURIComponent(JSON.stringify(definition))}`;
 
-    await expectAsync(service.submitPresentationFromUri(raw)).toBeRejectedWithError(
-      'Wallet does not store any verifiable credentials for presentation.',
-    );
+    const requestPromise = service.submitPresentationFromUri(raw);
+
+    const postRequest = httpMock.expectOne(responseUri);
+    expect(postRequest.request.method).toBe('POST');
+    expect(postRequest.request.headers.get('Content-Type')).toBe('application/json');
+
+    const payload = postRequest.request.body as Record<string, string>;
+    const vpTokenRaw = payload['vp_token'] as string;
+    expect(vpTokenRaw).toBeTruthy();
+    const decoded = decodeJwt(vpTokenRaw);
+    expect(decoded.payload['iss']).toBe(mockDid.id);
+    expect(decoded.payload['aud']).toBe(responseUri);
+    const vp = decoded.payload['vp'] as Record<string, unknown>;
+    const credentials = vp['verifiableCredential'] as unknown[];
+    expect(Array.isArray(credentials)).toBeTrue();
+    expect(credentials.length).toBe(0);
+
+    const submissionRaw = payload['presentation_submission'] as string;
+    expect(submissionRaw).toBeTruthy();
+    const submission = JSON.parse(submissionRaw) as Record<string, unknown>;
+    expect(submission['definition_id']).toBe('definition-no-credentials');
+    const descriptorMap = submission['descriptor_map'] as Array<Record<string, unknown>>;
+    expect(Array.isArray(descriptorMap)).toBeTrue();
+    expect(descriptorMap.length).toBe(1);
+    expect(descriptorMap[0]?.['id']).toBe('descriptor-none');
+    expect(descriptorMap[0]?.['path']).toBe('$');
+    expect(descriptorMap[0]?.['format']).toBe('jwt_vp');
+
+    postRequest.flush({ status: 'ok' });
+
+    const result = await requestPromise;
+    expect(result.credentialCount).toBe(0);
+    expect(result.presentationSubmission.descriptor_map.length).toBe(1);
+    expect(result.presentationSubmission.descriptor_map[0]?.path).toBe('$');
   });
 
   it('uses CapacitorHttp when running on a native platform', async () => {

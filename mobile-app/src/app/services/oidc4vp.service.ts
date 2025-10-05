@@ -515,19 +515,20 @@ export class Oidc4vpService {
   private selectCredentialsForDefinition(
     definition: PresentationDefinition,
     credentials: unknown[],
-  ): any[] {
-    if (!credentials || credentials.length === 0) {
-      console.log('Wallet does not store any verifiable credentials for presentation.');
-      return [];
-    }
-
+  ): unknown[] {
     const descriptors = Array.isArray(definition.input_descriptors) ? definition.input_descriptors : [];
     if (descriptors.length === 0) {
       throw new Error('Presentation definition does not specify any input descriptors.');
     }
 
+    if (!credentials || credentials.length === 0) {
+      console.warn('Wallet does not store any verifiable credentials; responding with an empty presentation.');
+      return [];
+    }
+
     if (credentials.length < descriptors.length) {
-      throw new Error('Wallet does not have enough credentials to satisfy the requested descriptors.');
+      console.warn('Wallet cannot satisfy the entire presentation definition; responding with available credentials only.');
+      return credentials;
     }
 
     return credentials.slice(0, descriptors.length);
@@ -535,7 +536,7 @@ export class Oidc4vpService {
 
   private buildPresentationSubmission(
     definition: PresentationDefinition,
-    credentials: unknown[],
+    _credentials: unknown[],
   ): PresentationSubmission {
     if (!definition.id) {
       throw new Error('Presentation definition is missing an identifier.');
