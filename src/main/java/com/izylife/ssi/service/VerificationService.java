@@ -36,6 +36,12 @@ public class VerificationService {
     }
 
     public VerifyPresentationResponse verifyPresentation(VerifyPresentationRequest request) {
+        String requestState = request.getState();
+        boolean stateMatches = onboardingStateService.isActiveAuthorizationState(requestState);
+        if (!stateMatches) {
+            return new VerifyPresentationResponse(false, null, "Presentation response does not match the active verification request. Please rescan the QR code.");
+        }
+
         try {
             String decoded = new String(Base64.getDecoder().decode(request.getPresentationPayload()), StandardCharsets.UTF_8);
             JsonNode presentation = objectMapper.readTree(decoded);

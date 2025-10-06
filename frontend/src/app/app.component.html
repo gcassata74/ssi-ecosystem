@@ -2,7 +2,7 @@
   <h1>Izylife Verifier Portal</h1>
 
   <section *ngIf="loading" class="panel">
-    <p>Loading verifiable presentation request...</p>
+    <p>Loading onboarding step...</p>
   </section>
 
   <section *ngIf="error" class="panel error">
@@ -11,15 +11,51 @@
   </section>
 
   <section *ngIf="qr && !loading" class="panel">
-    <h2>{{ qr.label }}</h2>
-    <p class="instructions">{{ qr.instructions }}</p>
-    <div class="qr-wrapper">
-      <img [src]="qr.qrImageDataUrl" alt="QR code for verifiable presentation request" />
+    <p class="step-label" [class.issuer-step-label]="isIssuerStep">Current step: {{ qr.step }}</p>
+    <h2>{{ qr.title }}</h2>
+    <p class="description">{{ qr.description }}</p>
+
+    <div *ngIf="isIssuerStep && qr.credentialPreview as preview" class="issuer-details">
+      <p class="issuer-highlight">
+        No credential detected in the wallet response. Share this mock credential with the wallet to continue verification.
+      </p>
+      <ul class="credential-meta">
+        <li *ngIf="preview.issuerName || preview.issuerId">
+          <strong>Issuer:</strong>
+          <span>{{ preview.issuerName || preview.issuerId }}</span>
+        </li>
+        <li *ngIf="preview.type?.length">
+          <strong>Types:</strong>
+          <span>{{ preview.type.join(', ') }}</span>
+        </li>
+      </ul>
+      <div *ngIf="credentialSubjectEntries.length" class="credential-preview">
+        <h3>Credential Subject</h3>
+        <dl>
+          <div *ngFor="let entry of credentialSubjectEntries">
+            <dt>{{ entry.key }}</dt>
+            <dd>{{ entry.value }}</dd>
+          </div>
+        </dl>
+      </div>
     </div>
+
+    <div class="qr-wrapper">
+      <img [src]="qr.qrCodeImageDataUrl" [alt]="'QR code for ' + qr.title" />
+    </div>
+    <p *ngIf="qr.helperText && !isIssuerStep" class="helper">{{ qr.helperText }}</p>
+    <p *ngIf="qr.helperText && isIssuerStep" class="issuer-helper">{{ qr.helperText }}</p>
     <details>
       <summary>View payload</summary>
-      <code>{{ qr.payload }}</code>
+      <code>{{ qr.qrCodePayload }}</code>
     </details>
+    <details *ngIf="isIssuerStep && qr.credentialPreview?.rawJson" class="credential-json">
+      <summary>View credential JSON</summary>
+      <code>{{ qr.credentialPreview.rawJson }}</code>
+    </details>
+    <a *ngIf="qr.actionLabel && qr.actionUrl" class="secondary-action" [href]="qr.actionUrl" target="_blank" rel="noopener">
+      {{ qr.actionLabel }}
+    </a>
   </section>
 
 </main>

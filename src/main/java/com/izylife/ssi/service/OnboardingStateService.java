@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.izylife.ssi.config.AppProperties;
 import com.izylife.ssi.dto.OnboardingQrResponse;
+import com.izylife.ssi.dto.OnboardingStatusResponse;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
@@ -25,48 +27,79 @@ public class OnboardingStateService {
     }
 
     private final AtomicReference<OnboardingStep> currentStep = new AtomicReference<>(OnboardingStep.VP_REQUEST);
+    private static final String ONBOARDING_TOPIC = "/topic/onboarding";
+
     private final AppProperties appProperties;
     private final QrCodeService qrCodeService;
     private final Oidc4VpRequestService oidc4VpRequestService;
     private final ObjectMapper objectMapper;
     private final SampleCredentialOffer sampleCredentialOffer;
     private final AtomicReference<Oidc4VpRequestService.AuthorizationRequest> currentAuthorization = new AtomicReference<>();
+    private final SimpMessagingTemplate messagingTemplate;
 
     public OnboardingStateService(AppProperties appProperties,
                                   QrCodeService qrCodeService,
                                   Oidc4VpRequestService oidc4VpRequestService,
-                                  ObjectMapper objectMapper) {
+                                  ObjectMapper objectMapper,
+                                  SimpMessagingTemplate messagingTemplate) {
         this.appProperties = appProperties;
         this.qrCodeService = qrCodeService;
         this.oidc4VpRequestService = oidc4VpRequestService;
         this.objectMapper = objectMapper;
+        this.messagingTemplate = messagingTemplate;
         this.sampleCredentialOffer = buildSampleCredentialOffer();
         refreshAuthorizationRequest();
     }
 
+    public OnboardingStatusResponse getCurrentStatus() {
+        return new OnboardingStatusResponse(
+                currentStep.get().name(),
+                buildVerifierSnapshot(),
+                buildIssuerQr()
+        );
+    }
+
     public OnboardingQrResponse getCurrentQr() {
-        OnboardingStep step = currentStep.get();
-        return switch (step) {
-            case ISSUER_QR -> buildIssuerQr();
-            case VP_REQUEST -> buildVerifierQr();
-        };
+        return currentStep.get() == OnboardingStep.ISSUER_QR
+                ? buildIssuerQr()
+                : buildVerifierQr();
     }
 
     public void showIssuerQr() {
         currentStep.set(OnboardingStep.ISSUER_QR);
+        OnboardingQrResponse issuerQr = buildIssuerQr();
+        publishUpdate(OnboardingStep.ISSUER_QR, issuerQr);
     }
 
     public void showVerifierQr() {
-        refreshAuthorizationRequest();
+        Oidc4VpRequestService.AuthorizationRequest authorization = refreshAuthorizationRequest();
         currentStep.set(OnboardingStep.VP_REQUEST);
+        OnboardingQrResponse verifierQr = buildVerifierQr(authorization);
+        publishUpdate(OnboardingStep.VP_REQUEST, verifierQr);
     }
 
     public OnboardingStep getCurrentStep() {
         return currentStep.get();
     }
 
+    public boolean isActiveAuthorizationState(String state) {
+        if (state == null || state.isBlank()) {
+            return false;
+        }
+        Oidc4VpRequestService.AuthorizationRequest authorization = currentAuthorization.get();
+        return authorization != null && state.equals(authorization.state());
+    }
+
     private OnboardingQrResponse buildVerifierQr() {
-        Oidc4VpRequestService.AuthorizationRequest authorization = ensureActiveAuthorization();
+        AuthorizationState state = ensureActiveAuthorization();
+        OnboardingQrResponse response = buildVerifierQr(state.authorization());
+        if (state.refreshed()) {
+            publishUpdate(OnboardingStep.VP_REQUEST, response);
+        }
+        return response;
+    }
+
+    private OnboardingQrResponse buildVerifierQr(Oidc4VpRequestService.AuthorizationRequest authorization) {
         String payload = authorization.qrPayload();
         String helperText = "State: " + authorization.state() + " | Nonce: " + authorization.nonce();
         return new OnboardingQrResponse(
@@ -126,12 +159,44 @@ public class OnboardingStateService {
         );
     }
 
-    private Oidc4VpRequestService.AuthorizationRequest ensureActiveAuthorization() {
+    private void publishUpdate(OnboardingStep activeStep, OnboardingQrResponse stepQr) {
+        if (stepQr == null) {
+            return;
+        }
+
+        OnboardingQrResponse verifier = activeStep == OnboardingStep.VP_REQUEST
+                ? stepQr
+                : buildVerifierSnapshot();
+        OnboardingQrResponse issuer = activeStep == OnboardingStep.ISSUER_QR
+                ? stepQr
+                : buildIssuerQr();
+
+        OnboardingStatusResponse status = new OnboardingStatusResponse(
+                activeStep.name(),
+                verifier,
+                issuer
+        );
+
+        messagingTemplate.convertAndSend(ONBOARDING_TOPIC, status);
+    }
+
+    private OnboardingQrResponse buildVerifierSnapshot() {
         Oidc4VpRequestService.AuthorizationRequest authorization = currentAuthorization.get();
-        if (authorization == null || oidc4VpRequestService.resolveSession(authorization.state()).isEmpty()) {
+        if (authorization == null) {
             authorization = refreshAuthorizationRequest();
         }
-        return authorization;
+        return buildVerifierQr(authorization);
+    }
+
+    private AuthorizationState ensureActiveAuthorization() {
+        Oidc4VpRequestService.AuthorizationRequest authorization = currentAuthorization.get();
+        boolean refreshed = false;
+        if (authorization == null || oidc4VpRequestService.resolveSession(authorization.state()).isEmpty()) {
+            authorization = refreshAuthorizationRequest();
+            currentStep.set(OnboardingStep.VP_REQUEST);
+            refreshed = true;
+        }
+        return new AuthorizationState(authorization, refreshed);
     }
 
     private Oidc4VpRequestService.AuthorizationRequest refreshAuthorizationRequest() {
@@ -184,5 +249,8 @@ public class OnboardingStateService {
     }
 
     private record SampleCredentialOffer(String qrPayload, String helperText, String downloadUrl) {
+    }
+
+    private record AuthorizationState(Oidc4VpRequestService.AuthorizationRequest authorization, boolean refreshed) {
     }
 }

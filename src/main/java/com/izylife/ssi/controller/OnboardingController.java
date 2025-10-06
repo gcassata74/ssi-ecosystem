@@ -1,6 +1,6 @@
 package com.izylife.ssi.controller;
 
-import com.izylife.ssi.dto.OnboardingQrResponse;
+import com.izylife.ssi.dto.OnboardingStatusResponse;
 import com.izylife.ssi.service.OnboardingStateService;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -18,7 +18,7 @@ public class OnboardingController {
     }
 
     @GetMapping("/qr")
-    public OnboardingQrResponse getCurrentQr() {
-        return onboardingStateService.getCurrentQr();
+    public OnboardingStatusResponse getCurrentQr() {
+        return onboardingStateService.getCurrentStatus();
     }
 }
