@@ -8,14 +8,10 @@ import com.izylife.ssi.dto.OnboardingStatusResponse;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
-import java.time.Instant;
-import java.time.temporal.ChronoUnit;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.Base64;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 @Service
@@ -32,22 +28,25 @@ public class OnboardingStateService {
     private final AppProperties appProperties;
     private final QrCodeService qrCodeService;
     private final Oidc4VpRequestService oidc4VpRequestService;
+    private final Oidc4vciService oidc4vciService;
     private final ObjectMapper objectMapper;
-    private final SampleCredentialOffer sampleCredentialOffer;
+    private final AtomicReference<SampleCredentialOffer> sampleCredentialOffer = new AtomicReference<>();
     private final AtomicReference<Oidc4VpRequestService.AuthorizationRequest> currentAuthorization = new AtomicReference<>();
     private final SimpMessagingTemplate messagingTemplate;
 
     public OnboardingStateService(AppProperties appProperties,
                                   QrCodeService qrCodeService,
                                   Oidc4VpRequestService oidc4VpRequestService,
+                                  Oidc4vciService oidc4vciService,
                                   ObjectMapper objectMapper,
                                   SimpMessagingTemplate messagingTemplate) {
         this.appProperties = appProperties;
         this.qrCodeService = qrCodeService;
         this.oidc4VpRequestService = oidc4VpRequestService;
+        this.oidc4vciService = oidc4vciService;
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
-        this.sampleCredentialOffer = buildSampleCredentialOffer();
+        this.sampleCredentialOffer.set(buildSampleCredentialOffer());
         refreshAuthorizationRequest();
     }
 
@@ -120,7 +119,7 @@ public class OnboardingStateService {
 
     private Optional<String> resolveConfiguredIssuerPayload() {
         return Optional.ofNullable(appProperties.getIssuer())
-                .map(AppProperties.IssuerProperties::getQrPayload)
+                .map(AppProperties.IssuerProperties::getCredentialOfferUri)
                 .filter(value -> !value.isBlank());
     }
 
@@ -145,17 +144,18 @@ public class OnboardingStateService {
     }
 
     private OnboardingQrResponse buildSampleCredentialQr() {
-        String payload = sampleCredentialOffer.qrPayload();
-        String description = "Wallet has no Izylife staff credential. Scan to import a PoC credential that satisfies the verification request.";
+        SampleCredentialOffer offer = ensureSampleCredentialOffer();
+        String payload = offer.qrPayload();
+        String description = "Wallet has no Izylife staff credential. Scan to start an OIDC4VCI credential offer.";
         return new OnboardingQrResponse(
                 OnboardingStep.ISSUER_QR.name(),
                 "Import Sample Staff Credential",
                 description,
-                sampleCredentialOffer.helperText(),
+                offer.helperText(),
                 payload,
                 qrCodeService.generatePngDataUri(payload),
-                "Download credential JSON",
-                sampleCredentialOffer.downloadUrl()
+                offer.actionLabel(),
+                offer.actionUrl()
         );
     }
 
@@ -206,49 +206,59 @@ public class OnboardingStateService {
     }
 
     private SampleCredentialOffer buildSampleCredentialOffer() {
+        String issuerEndpoint = resolveIssuerEndpoint();
+
+        Oidc4vciService.StaffProfile profile = new Oidc4vciService.StaffProfile(
+                "did:key:z6MkjsPve3QFtSobhVYqgv48tSxB6v6y7sgbhR8nTBiq7bYd",
+                "Rivera",
+                "Jamie",
+                "Public Authority Operator",
+                "IZY-OPS-001",
+                "jamie.rivera@izylife.example"
+        );
+
+        Oidc4vciService.CredentialOfferRecord offer = oidc4vciService.createStaffCredentialOffer(profile);
         try {
-            String organisation = resolveIssuerOrganisation();
-            String issuerId = Optional.ofNullable(appProperties.getIssuer())
-                    .map(AppProperties.IssuerProperties::getEndpoint)
-                    .filter(value -> !value.isBlank())
-                    .orElse("did:example:izylife-issuer");
-
-            Map<String, Object> issuer = new LinkedHashMap<>();
-            issuer.put("id", issuerId);
-            issuer.put("name", organisation);
-
-            Map<String, Object> credential = new LinkedHashMap<>();
-            credential.put("@context", List.of(
-                    "https://www.w3.org/2018/credentials/v1",
-                    "https://www.w3.org/2018/credentials/examples/v1"
-            ));
-            credential.put("id", "urn:uuid:" + UUID.randomUUID());
-            credential.put("type", List.of("VerifiableCredential", "PublicAuthorityStaffCredential"));
-            credential.put("issuer", issuer);
-            credential.put("issuanceDate", Instant.now().truncatedTo(ChronoUnit.SECONDS).toString());
-            credential.put("credentialSchema", Map.of(
-                    "id", "https://schemas.izylife.example/credentials/staff-credential",
-                    "type", "JsonSchemaValidator2018"
-            ));
-            credential.put("credentialSubject", Map.of(
-                    "id", "did:example:izylife-operator-001",
-                    "givenName", "Jamie",
-                    "familyName", "Rivera",
-                    "employeeNumber", "IZY-OPS-001",
-                    "role", "Public Authority Operator"
-            ));
-
-            byte[] credentialBytes = objectMapper.writerWithDefaultPrettyPrinter().writeValueAsBytes(credential);
-            String qrPayload = "SSICredential:" + Base64.getUrlEncoder().withoutPadding().encodeToString(credentialBytes);
-            String downloadUrl = "data:application/json;base64," + Base64.getEncoder().encodeToString(credentialBytes);
-            String helperText = "Credential type: PublicAuthorityStaffCredential | Issuer: " + organisation;
-            return new SampleCredentialOffer(qrPayload, helperText, downloadUrl);
+            String offerUri = issuerEndpoint + "/oidc4vci/credential-offers/" + offer.offerId();
+            String helperText = String.format("issuer_state=%s | pre-authorized grant available", offer.issuerState());
+            String offerJson = objectMapper.writeValueAsString(oidc4vciService.buildCredentialOffer(offer));
+            String encoded = URLEncoder.encode(offerJson, StandardCharsets.UTF_8);
+            String qrPayload = "openid-credential-offer://?credential_offer=" + encoded;
+            return new SampleCredentialOffer(
+                    offer.offerId(),
+                    qrPayload,
+                    helperText,
+                    "Preview credential offer JSON",
+                    buildDataDownloadUri(offerJson)
+            );
         } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("Unable to prepare the sample Staff Credential QR payload", ex);
+            throw new IllegalStateException("Unable to serialise sample credential offer", ex);
         }
     }
 
-    private record SampleCredentialOffer(String qrPayload, String helperText, String downloadUrl) {
+    private SampleCredentialOffer ensureSampleCredentialOffer() {
+        SampleCredentialOffer current = sampleCredentialOffer.get();
+        if (current != null && oidc4vciService.findOfferById(current.offerId()).isPresent()) {
+            return current;
+        }
+        SampleCredentialOffer refreshed = buildSampleCredentialOffer();
+        sampleCredentialOffer.set(refreshed);
+        return refreshed;
+    }
+
+    private String resolveIssuerEndpoint() {
+        return Optional.ofNullable(appProperties.getIssuer())
+                .map(AppProperties.IssuerProperties::getEndpoint)
+                .filter(value -> !value.isBlank())
+                .orElse("http://localhost:9090");
+    }
+
+    private String buildDataDownloadUri(String json) {
+        String base64 = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
+        return "data:application/json;base64," + base64;
+    }
+
+    private record SampleCredentialOffer(String offerId, String qrPayload, String helperText, String actionLabel, String actionUrl) {
     }
 
     private record AuthorizationState(Oidc4VpRequestService.AuthorizationRequest authorization, boolean refreshed) {

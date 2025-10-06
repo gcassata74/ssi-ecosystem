@@ -4,8 +4,17 @@ server:
 app:
   issuer:
     organization-name: Izylife Public Authority
-    endpoint: ${APP_ISSUER_ENDPOINT:http://issuer.izylife.com:9090}
-    qr-payload: "ssi://issuer-offer?issuer=IzylifePublicAuthority&template=pa-staff"
+    endpoint: ${APP_ISSUER_ENDPOINT:https://mica-semicivilized-heavily.ngrok-free.dev}
+    credential-issuer-id: ${APP_ISSUER_CREDENTIAL_ISSUER_ID:${APP_ISSUER_ENDPOINT:https://mica-semicivilized-heavily.ngrok-free.dev}}
+    credential-offer-uri: ${APP_ISSUER_CREDENTIAL_OFFER_URI:}
+    signing-key:
+      kid: demo-issuer-key
+      kty: EC
+      crv: P-256
+      x: yUkiMuYe-e1Kf-bJ0zPP3e7MUqhdN8-E-u9jjPywPjo
+      y: WxCnkmraRMwnb2-GymcA-TP-CrEv3sLsLlS7iWhQC4c
+      d: G-78W0e4pV0lTLuHNc8X96a_j3BIbjaa2avYeghwcAU
+      alg: ES256
   verifier:
     endpoint: ${APP_VERIFIER_ENDPOINT:http://verifier.izylife.com:9090}
     challenge: demo-challenge

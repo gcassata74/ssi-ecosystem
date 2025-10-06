@@ -20,7 +20,9 @@ public class AppProperties {
     public static class IssuerProperties {
         private String organizationName;
         private String endpoint;
-        private String qrPayload;
+        private String credentialIssuerId;
+        private String credentialOfferUri;
+        private SigningKeyProperties signingKey = new SigningKeyProperties();
     }
 
     @Getter
