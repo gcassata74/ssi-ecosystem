@@ -4,6 +4,8 @@ import { Capacitor, CapacitorHttp } from '@capacitor/core';
 import { firstValueFrom } from 'rxjs';
 
 import { CredentialService } from './credential.service';
+import { DidService } from './did.service';
+import { KeyService } from './key.service';
 
 type CredentialOffer = {
   credential_issuer?: string;
@@ -18,9 +20,17 @@ type CredentialOfferEntry = {
   credential_configuration_id?: string;
 };
 
+type CredentialConfigurationMetadata = {
+  format?: string;
+  credential_definition?: Record<string, unknown>;
+  [key: string]: unknown;
+};
+
 type CredentialIssuerMetadata = {
   credential_endpoint?: string;
   token_endpoint?: string;
+  credential_configurations_supported?: Record<string, CredentialConfigurationMetadata>;
+  credentials_supported?: Record<string, CredentialConfigurationMetadata>;
   [key: string]: unknown;
 };
 
@@ -59,6 +69,8 @@ export type Oidc4vcIssuanceResult = {
 export class Oidc4vcService {
   private readonly http = inject(HttpClient);
   private readonly credentialService = inject(CredentialService);
+  private readonly didService = inject(DidService);
+  private readonly keyService = inject(KeyService);
 
   isOidc4vcUri(raw: string | null | undefined): boolean {
     if (!raw) {
@@ -93,14 +105,30 @@ export class Oidc4vcService {
     );
 
     const credentialEndpoint = this.ensureCredentialEndpoint(metadata);
-    const requests = this.buildCredentialRequests(offer);
+    const requests = this.buildCredentialRequests(offer, metadata);
     const issued: unknown[] = [];
 
+    let proofNonce = token.cNonce;
+
+    if (!proofNonce) {
+      throw new Error('Credential issuer token response did not include a c_nonce required for proof.');
+    }
+
     for (const request of requests) {
-      const response = await this.requestCredential(credentialEndpoint, token.accessToken, request);
+      const proofJwt = await this.buildProofJwt(issuer, proofNonce);
+      const response = await this.requestCredential(
+        credentialEndpoint,
+        token.accessToken,
+        request,
+        proofJwt,
+      );
       const credential = this.extractCredential(response);
       if (credential !== undefined) {
         issued.push(credential);
+      }
+
+      if (response.cNonce) {
+        proofNonce = response.cNonce;
       }
     }
 
@@ -315,7 +343,10 @@ export class Oidc4vcService {
     } satisfies TokenResponse;
   }
 
-  private buildCredentialRequests(offer: CredentialOffer): CredentialRequest[] {
+  private buildCredentialRequests(
+    offer: CredentialOffer,
+    metadata: CredentialIssuerMetadata,
+  ): CredentialRequest[] {
     const direct = Array.isArray(offer.credentials) ? offer.credentials : [];
     const configurationIds = Array.isArray(offer.credential_configuration_ids)
       ? offer.credential_configuration_ids
@@ -334,16 +365,22 @@ export class Oidc4vcService {
           ? entry.credential_configuration_id
           : undefined;
 
-      requests.push({
-        format,
-        credentialDefinition: definition,
-        credentialConfigurationId: configurationId,
-      });
+      const enriched = this.ensureRequestFormat(
+        {
+          format,
+          credentialDefinition: definition,
+          credentialConfigurationId: configurationId,
+        },
+        metadata,
+      );
+
+      requests.push(enriched);
     }
 
     for (const id of configurationIds) {
       if (typeof id === 'string' && id) {
-        requests.push({ credentialConfigurationId: id });
+        const enriched = this.ensureRequestFormat({ credentialConfigurationId: id }, metadata);
+        requests.push(enriched);
       }
     }
 
@@ -354,10 +391,38 @@ export class Oidc4vcService {
     return requests;
   }
 
+  private ensureRequestFormat(
+    request: CredentialRequest,
+    metadata: CredentialIssuerMetadata,
+  ): CredentialRequest {
+    if (request.format) {
+      return request;
+    }
+
+    const configId = request.credentialConfigurationId;
+    if (!configId) {
+      return request;
+    }
+
+    const configurations = metadata?.credential_configurations_supported ?? metadata?.credentials_supported;
+    const configuration = configurations?.[configId];
+    const format = configuration && typeof configuration?.format === 'string' ? configuration.format : undefined;
+
+    if (!format) {
+      return request;
+    }
+
+    return {
+      ...request,
+      format,
+    } satisfies CredentialRequest;
+  }
+
   private async requestCredential(
     endpoint: string,
     accessToken: string,
     request: CredentialRequest,
+    proofJwt: string,
   ): Promise<CredentialResponse> {
     const payload: Record<string, unknown> = {};
     if (request.format) {
@@ -369,6 +434,10 @@ export class Oidc4vcService {
     if (request.credentialConfigurationId) {
       payload['credential_configuration_id'] = request.credentialConfigurationId;
     }
+    payload['proof'] = {
+      proof_type: 'jwt',
+      jwt: proofJwt,
+    };
 
     let response: Record<string, unknown> | undefined;
 
@@ -400,6 +469,70 @@ export class Oidc4vcService {
       format: typeof response?.['format'] === 'string' ? (response?.['format'] as string) : undefined,
       cNonce: typeof response?.['c_nonce'] === 'string' ? (response?.['c_nonce'] as string) : undefined,
     } satisfies CredentialResponse;
+  }
+
+  private async buildProofJwt(audience: string, nonce: string): Promise<string> {
+    const [did, keyPair] = await Promise.all([
+      this.didService.ensureDid(),
+      this.keyService.ensureKeyPair(),
+    ]);
+
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const payload: Record<string, unknown> = {
+      iss: did.id,
+      aud: audience,
+      iat: issuedAt,
+      nonce,
+    };
+
+    return this.createJws(payload, keyPair.privateKey);
+  }
+
+  private async createJws(payload: Record<string, unknown>, privateKey: JsonWebKey): Promise<string> {
+    const header = { alg: 'ES256', typ: 'JWT' };
+    const encodedHeader = this.base64UrlEncodeText(JSON.stringify(header));
+    const encodedPayload = this.base64UrlEncodeText(JSON.stringify(payload));
+    const signingInput = `${encodedHeader}.${encodedPayload}`;
+    const signatureBytes = await this.signWithPrivateKey(signingInput, privateKey);
+    const signature = this.base64UrlEncode(signatureBytes);
+
+    return `${signingInput}.${signature}`;
+  }
+
+  private async signWithPrivateKey(data: string, privateKey: JsonWebKey): Promise<Uint8Array> {
+    const subtle = globalThis.crypto?.subtle;
+    if (!subtle) {
+      throw new Error('WebCrypto subtle API is not available for signing.');
+    }
+
+    const cryptoKey = await subtle.importKey(
+      'jwk',
+      privateKey,
+      { name: 'ECDSA', namedCurve: 'P-256' },
+      false,
+      ['sign'],
+    );
+
+    const signature = await subtle.sign(
+      { name: 'ECDSA', hash: 'SHA-256' },
+      cryptoKey,
+      new TextEncoder().encode(data),
+    );
+
+    return new Uint8Array(signature);
+  }
+
+  private base64UrlEncode(bytes: Uint8Array): string {
+    let binary = '';
+    for (const byte of bytes) {
+      binary += String.fromCharCode(byte);
+    }
+    const base64 = globalThis.btoa(binary);
+    return base64.replace(/=/gu, '').replace(/\+/gu, '-').replace(/\//gu, '_');
+  }
+
+  private base64UrlEncodeText(value: string): string {
+    return this.base64UrlEncode(new TextEncoder().encode(value));
   }
 
   private extractCredential(response: CredentialResponse): unknown {
