@@ -10,7 +10,6 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.util.Base64;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -175,9 +174,7 @@ public class OnboardingStateService {
                 description,
                 offer.helperText(),
                 payload,
-                qrCodeService.generatePngDataUri(payload),
-                offer.actionLabel(),
-                offer.actionUrl()
+                qrCodeService.generatePngDataUri(payload)
         );
     }
 
@@ -250,9 +247,7 @@ public class OnboardingStateService {
             return new SampleCredentialOffer(
                     offer.offerId(),
                     qrPayload,
-                    helperText,
-                    "Preview credential offer JSON",
-                    buildDataDownloadUri(offerJson)
+                    helperText
             );
         } catch (JsonProcessingException ex) {
             throw new IllegalStateException("Unable to serialise sample credential offer", ex);
@@ -276,12 +271,7 @@ public class OnboardingStateService {
                 .orElse("http://localhost:9090");
     }
 
-    private String buildDataDownloadUri(String json) {
-        String base64 = Base64.getEncoder().encodeToString(json.getBytes(StandardCharsets.UTF_8));
-        return "data:application/json;base64," + base64;
-    }
-
-    private record SampleCredentialOffer(String offerId, String qrPayload, String helperText, String actionLabel, String actionUrl) {
+    private record SampleCredentialOffer(String offerId, String qrPayload, String helperText) {
     }
 
     private record AuthorizationState(Oidc4VpRequestService.AuthorizationRequest authorization, boolean refreshed) {

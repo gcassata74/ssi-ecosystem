@@ -45,17 +45,14 @@
     </div>
     <p *ngIf="qr.helperText && !isIssuerStep" class="helper">{{ qr.helperText }}</p>
     <p *ngIf="qr.helperText && isIssuerStep" class="issuer-helper">{{ qr.helperText }}</p>
-    <details>
+    <details *ngIf="qr.qrCodePayload as payload" class="payload-details">
       <summary>View payload</summary>
-      <code>{{ qr.qrCodePayload }}</code>
+      <pre class="payload"><code>{{ payload }}</code></pre>
     </details>
     <details *ngIf="isIssuerStep && qr.credentialPreview?.rawJson" class="credential-json">
       <summary>View credential JSON</summary>
-      <code>{{ qr.credentialPreview.rawJson }}</code>
+      <pre class="payload"><code>{{ qr.credentialPreview.rawJson }}</code></pre>
     </details>
-    <a *ngIf="qr.actionLabel && qr.actionUrl" class="secondary-action" [href]="qr.actionUrl" target="_blank" rel="noopener">
-      {{ qr.actionLabel }}
-    </a>
   </section>
 
 </main>
