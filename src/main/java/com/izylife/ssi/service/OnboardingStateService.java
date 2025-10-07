@@ -22,7 +22,14 @@ public class OnboardingStateService {
         ISSUER_QR
     }
 
+    public enum IssuerFlowState {
+        IDLE,
+        WAITING_FOR_WALLET,
+        CREDENTIALS_RECEIVED
+    }
+
     private final AtomicReference<OnboardingStep> currentStep = new AtomicReference<>(OnboardingStep.VP_REQUEST);
+    private final AtomicReference<IssuerFlowState> issuerFlowState = new AtomicReference<>(IssuerFlowState.IDLE);
     private static final String ONBOARDING_TOPIC = "/topic/onboarding";
 
     private final AppProperties appProperties;
@@ -53,6 +60,7 @@ public class OnboardingStateService {
     public OnboardingStatusResponse getCurrentStatus() {
         return new OnboardingStatusResponse(
                 currentStep.get().name(),
+                issuerFlowState.get().name(),
                 buildVerifierSnapshot(),
                 buildIssuerQr()
         );
@@ -66,6 +74,7 @@ public class OnboardingStateService {
 
     public void showIssuerQr() {
         currentStep.set(OnboardingStep.ISSUER_QR);
+        issuerFlowState.set(IssuerFlowState.WAITING_FOR_WALLET);
         OnboardingQrResponse issuerQr = buildIssuerQr();
         publishUpdate(OnboardingStep.ISSUER_QR, issuerQr);
     }
@@ -75,6 +84,19 @@ public class OnboardingStateService {
         currentStep.set(OnboardingStep.VP_REQUEST);
         OnboardingQrResponse verifierQr = buildVerifierQr(authorization);
         publishUpdate(OnboardingStep.VP_REQUEST, verifierQr);
+        issuerFlowState.compareAndSet(IssuerFlowState.CREDENTIALS_RECEIVED, IssuerFlowState.IDLE);
+    }
+
+    public boolean acknowledgeIssuerCredentialsReceived() {
+        boolean transitioned = issuerFlowState.compareAndSet(
+                IssuerFlowState.WAITING_FOR_WALLET,
+                IssuerFlowState.CREDENTIALS_RECEIVED
+        );
+        if (transitioned) {
+            showVerifierQr();
+            issuerFlowState.set(IssuerFlowState.IDLE);
+        }
+        return transitioned;
     }
 
     public OnboardingStep getCurrentStep() {
@@ -173,6 +195,7 @@ public class OnboardingStateService {
 
         OnboardingStatusResponse status = new OnboardingStatusResponse(
                 activeStep.name(),
+                issuerFlowState.get().name(),
                 verifier,
                 issuer
         );
