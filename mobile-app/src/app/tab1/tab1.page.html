@@ -85,6 +85,16 @@
       <ion-icon slot="start" name="qr-code-outline"></ion-icon>
       Start QR scan
     </ion-button>
+
+    <ion-button
+      expand="block"
+      color="medium"
+      fill="outline"
+      (click)="clearStoredCredentials()"
+    >
+      <ion-icon slot="start" name="trash-outline"></ion-icon>
+      Clear stored credentials
+    </ion-button>
     <!--ion-button (click)="testScan()">Inject test QR</ion-button-->
 
   </div>

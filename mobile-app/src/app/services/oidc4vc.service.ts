@@ -134,6 +134,7 @@ export class Oidc4vcService {
 
     if (issued.length > 0) {
       await this.credentialService.addVerifiableCredentials(issued);
+      await this.notifyIssuerCredentialsReceived(issuer, issued.length);
     }
 
     return {
@@ -689,5 +690,46 @@ export class Oidc4vcService {
     } catch {
       return false;
     }
+  }
+
+  private async notifyIssuerCredentialsReceived(issuer: string, credentialCount: number): Promise<void> {
+    if (!this.isHttpUrl(issuer)) {
+      return;
+    }
+
+    const endpoint = this.combineUrl(issuer, '/api/onboarding/issuer/credentials-received');
+
+    try {
+      const did = await this.didService.ensureDid();
+      const payload: Record<string, unknown> = {
+        walletDid: did.id,
+        credentialCount,
+      };
+
+      if (this.canUseNativeHttp()) {
+        await CapacitorHttp.post({
+          url: endpoint,
+          data: payload,
+          headers: {
+            'Content-Type': 'application/json',
+            Accept: 'application/json',
+          },
+        });
+      } else {
+        await firstValueFrom(
+          this.http.post(endpoint, payload, {
+            headers: new HttpHeaders({ 'Content-Type': 'application/json' }),
+          }),
+        );
+      }
+    } catch (error) {
+      console.warn('Failed to notify SSI portal about credential receipt.', error);
+    }
+  }
+
+  private combineUrl(base: string, path: string): string {
+    const normalizedBase = base.endsWith('/') ? base.slice(0, -1) : base;
+    const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+    return `${normalizedBase}${normalizedPath}`;
   }
 }

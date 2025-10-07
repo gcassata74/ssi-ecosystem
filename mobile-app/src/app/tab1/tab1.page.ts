@@ -19,7 +19,7 @@ import { Capacitor } from '@capacitor/core';
 import { Camera, CameraPermissionState } from '@capacitor/camera';
 import { Oidc4vcService } from '../services/oidc4vc.service';
 import { Oidc4vpService } from '../services/oidc4vp.service';
-import { of } from 'rxjs';
+import { CredentialService } from '../services/credential.service';
 
 @Component({
   selector: 'app-tab1',
@@ -58,6 +58,7 @@ export class Tab1Page implements OnDestroy {
   private readonly ngZone = inject(NgZone);
   private readonly oidc4vpService = inject(Oidc4vpService);
   private readonly oidc4vcService = inject(Oidc4vcService);
+  private readonly credentialService = inject(CredentialService);
 
   async startQrScan(): Promise<void> {
     if (this.isScanning) {
@@ -151,6 +152,17 @@ export class Tab1Page implements OnDestroy {
 
   dismissError(): void {
     this.scanError = undefined;
+  }
+
+  async clearStoredCredentials(): Promise<void> {
+    try {
+      await this.credentialService.replaceVerifiableCredentials([]);
+      this.scanError = undefined;
+      this.vpSubmissionMessage = undefined;
+      this.vcIssuanceMessage = 'Cleared stored credentials for testing.';
+    } catch (error) {
+      this.scanError = this.stringifyError(error);
+    }
   }
 
   ngOnDestroy(): void {

@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Tab1Page } from './tab1.page';
 import { Oidc4vcService } from '../services/oidc4vc.service';
 import { Oidc4vpService } from '../services/oidc4vp.service';
+import { CredentialService } from '../services/credential.service';
 
 describe('Tab1Page', () => {
   let component: Tab1Page;
@@ -22,6 +23,9 @@ describe('Tab1Page', () => {
       credentials: [],
     }),
   } satisfies Partial<Oidc4vcService>;
+  const credentialServiceStub = {
+    replaceVerifiableCredentials: jasmine.createSpy('replaceVerifiableCredentials').and.resolveTo(undefined),
+  } satisfies Partial<CredentialService>;
 
   beforeEach(async () => {
     await TestBed.configureTestingModule({
@@ -29,12 +33,21 @@ describe('Tab1Page', () => {
       providers: [
         { provide: Oidc4vpService, useValue: oidc4vpStub },
         { provide: Oidc4vcService, useValue: oidc4vcStub },
+        { provide: CredentialService, useValue: credentialServiceStub },
       ],
     }).compileComponents();
 
     fixture = TestBed.createComponent(Tab1Page);
     component = fixture.componentInstance;
     fixture.detectChanges();
+  });
+
+  afterEach(() => {
+    oidc4vpStub.isOidc4vpUri.calls.reset();
+    oidc4vpStub.submitPresentationFromUri.calls.reset();
+    oidc4vcStub.isOidc4vcUri.calls.reset();
+    oidc4vcStub.acceptCredentialOfferFromUri.calls.reset();
+    credentialServiceStub.replaceVerifiableCredentials.calls.reset();
   });
 
   it('should create', () => {
@@ -54,5 +67,12 @@ describe('Tab1Page', () => {
     expect(oidc4vcStub.acceptCredentialOfferFromUri).toHaveBeenCalledWith(
       'openid-credential-offer://?credential_offer={}',
     );
+  });
+
+  it('clears stored credentials through the credential service', async () => {
+    await component.clearStoredCredentials();
+
+    expect(credentialServiceStub.replaceVerifiableCredentials).toHaveBeenCalledWith([]);
+    expect(component.vcIssuanceMessage).toBe('Cleared stored credentials for testing.');
   });
 });

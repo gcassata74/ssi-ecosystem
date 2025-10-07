@@ -97,6 +97,18 @@ describe('Oidc4vcService', () => {
       credential: { id: 'urn:vc:example', type: ['VerifiableCredential', 'ExampleStaffCredential'] },
     });
 
+    const portalNotificationRequest = httpMock.expectOne(
+      'https://issuer.example/onboarding/issuer/credentials-received',
+    );
+    expect(addVerifiableCredentialsSpy).toHaveBeenCalledTimes(1);
+    expect(portalNotificationRequest.request.method).toBe('POST');
+    expect(portalNotificationRequest.request.headers.get('Content-Type')).toBe('application/json');
+    expect(portalNotificationRequest.request.body).toEqual(
+      jasmine.objectContaining({ credentialCount: 1 }),
+    );
+    expect(typeof portalNotificationRequest.request.body.walletDid).toBe('string');
+    portalNotificationRequest.flush({});
+
     const result = await issuancePromise;
 
     expect(result.issuer).toBe('https://issuer.example');
