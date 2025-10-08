@@ -3,6 +3,8 @@
 # Define default shell to be used
 SHELL := /bin/bash
 LOCALE ?= en
+PORT ?= 9090
+
 
 # e.g. make run-i18n-build LOCALE=fr
 run-i18n-build:
@@ -32,6 +34,6 @@ run-angular-client:
 run-spring-boot-server:
 	cd backend && MAVEN_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005" mvn spring-boot:run
 
-run-ngrok:
-	ngrok config add-authtoken 33SSQOjcmhp8GLdSgYIFtT2U8su_3vd1F3EUh61ffkEEwMUC && \
-	ngrok http 9090
+run-serveo:
+	ssh -R izylife:80:localhost:9090 serveo.net
+

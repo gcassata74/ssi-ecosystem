@@ -4,6 +4,15 @@
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
+    <repositories>
+        <repository>
+            <id>shibboleth-releases</id>
+            <url>https://build.shibboleth.net/maven/releases</url>
+            <releases><enabled>true</enabled></releases>
+            <snapshots><enabled>false</enabled></snapshots>
+        </repository>
+    </repositories>
+
     <groupId>com.izylife</groupId>
     <artifactId>ssi-issuer-verifier</artifactId>
     <version>0.0.1-SNAPSHOT</version>
@@ -44,6 +53,15 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-saml2-service-provider</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>net.shibboleth.utilities</groupId>
+            <artifactId>java-support</artifactId>
+            <version>8.4.0</version>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -163,7 +181,6 @@
                         <configuration>
                             <overwrite>true</overwrite>
                             <outputDirectory>${project.build.outputDirectory}/static</outputDirectory>
-                            <skipIfEmpty>true</skipIfEmpty>
                             <resources>
                                 <resource>
                                     <directory>frontend/dist/izylife-ssi-portal/browser</directory>

@@ -41,6 +41,31 @@ app:
       - https://*.staff-credentials.com
       - https://*.ngrok-free.app
     allow-credentials: false
+  spid:
+    enabled: ${APP_SPID_ENABLED:false}
+    registration-id: ${APP_SPID_REGISTRATION_ID:spid}
+    entity-id: ${APP_SPID_ENTITY_ID:https://issuer.izylife.com/spid}
+    assertion-consumer-service: ${APP_SPID_ASSERTION_CONSUMER_SERVICE:https://issuer.izylife.com/login/saml2/sso/spid}
+    single-sign-on-service-location: ${APP_SPID_SINGLE_SIGN_ON_SERVICE_LOCATION:}
+    single-logout-service-location: ${APP_SPID_SINGLE_LOGOUT_SERVICE_LOCATION:https://issuer.izylife.com/spid/logout}
+    signing-certificate-location: ${APP_SPID_SIGNING_CERTIFICATE_LOCATION:classpath:spid/sp-signing-cert.pem}
+    signing-key-location: ${APP_SPID_SIGNING_KEY_LOCATION:classpath:spid/sp-signing-key.pem}
+    identity-provider-metadata-location: ${APP_SPID_IDP_METADATA_LOCATION:https://demo.spid.gov.it/metadata.xml}
+    login-path: ${APP_SPID_LOGIN_PATH:/saml2/authenticate/spid}
+    post-login-redirect: ${APP_SPID_POST_LOGIN_REDIRECT:/issuer}
+    purpose: ${APP_SPID_PURPOSE:Accesso area riservata Izylife}
+    requested-attributes:
+      - name: fiscalNumber
+        friendly-name: fiscalNumber
+        required: true
+      - name: name
+        friendly-name: name
+        required: true
+      - name: familyName
+        friendly-name: familyName
+        required: true
+      - name: email
+        friendly-name: email
 spring:
   data:
     mongodb:
@@ -48,3 +73,9 @@ spring:
       database: ${SPRING_DATA_MONGODB_DATABASE:ssi-issuer-verifier}
   mvc:
     static-path-pattern: /**
+
+logging:
+  level:
+    com.izylife.ssi: DEBUG
+    org.springframework.security.saml2: DEBUG
+    org.opensaml: DEBUG

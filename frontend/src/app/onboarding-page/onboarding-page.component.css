@@ -182,3 +182,34 @@ details {
   background: none;
   padding: 0;
 }
+
+.spid-action {
+  margin: 1.5rem 0;
+}
+
+.spid-button {
+  padding: 0.75rem 2.5rem;
+  border: none;
+  border-radius: 999px;
+  background: linear-gradient(135deg, #0b5ed7, #0a53be);
+  color: #ffffff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 0 10px 20px rgba(11, 94, 215, 0.25);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.spid-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 14px 24px rgba(11, 94, 215, 0.3);
+}
+
+.spid-helper {
+  margin: 0.75rem 0 1.25rem;
+  color: #0f172a;
+  font-weight: 500;
+  background: #e0f2fe;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+}

@@ -5,6 +5,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.izylife.ssi.config.AppProperties;
 import com.izylife.ssi.dto.OnboardingQrResponse;
 import com.izylife.ssi.dto.OnboardingStatusResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,7 @@ public class OnboardingStateService {
 
     public enum OnboardingStep {
         VP_REQUEST,
+        ISSUER_SPID_PROMPT,
         ISSUER_QR
     }
 
@@ -27,6 +30,7 @@ public class OnboardingStateService {
         CREDENTIALS_RECEIVED
     }
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(OnboardingStateService.class);
     private final AtomicReference<OnboardingStep> currentStep = new AtomicReference<>(OnboardingStep.VP_REQUEST);
     private final AtomicReference<IssuerFlowState> issuerFlowState = new AtomicReference<>(IssuerFlowState.IDLE);
     private static final String ONBOARDING_TOPIC = "/topic/onboarding";
@@ -36,7 +40,7 @@ public class OnboardingStateService {
     private final Oidc4VpRequestService oidc4VpRequestService;
     private final Oidc4vciService oidc4vciService;
     private final ObjectMapper objectMapper;
-    private final AtomicReference<SampleCredentialOffer> sampleCredentialOffer = new AtomicReference<>();
+    private final AtomicReference<CredentialOfferContext> activeCredentialOffer = new AtomicReference<>();
     private final AtomicReference<Oidc4VpRequestService.AuthorizationRequest> currentAuthorization = new AtomicReference<>();
     private final SimpMessagingTemplate messagingTemplate;
 
@@ -52,7 +56,6 @@ public class OnboardingStateService {
         this.oidc4vciService = oidc4vciService;
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
-        this.sampleCredentialOffer.set(buildSampleCredentialOffer());
         refreshAuthorizationRequest();
     }
 
@@ -61,20 +64,39 @@ public class OnboardingStateService {
                 currentStep.get().name(),
                 issuerFlowState.get().name(),
                 buildVerifierSnapshot(),
-                buildIssuerQr()
+                buildIssuerState()
         );
     }
 
     public OnboardingQrResponse getCurrentQr() {
-        return currentStep.get() == OnboardingStep.ISSUER_QR
-                ? buildIssuerQr()
-                : buildVerifierQr();
+        OnboardingStep step = currentStep.get();
+        if (step == OnboardingStep.VP_REQUEST) {
+            return buildVerifierQr();
+        }
+        return buildIssuerState();
     }
 
-    public void showIssuerQr() {
+    public void promptIssuerEnrollment() {
+        AppProperties.SpidProperties spidProperties = appProperties.getSpid();
+        if (spidProperties == null || !spidProperties.isEnabled()) {
+            CredentialOfferContext context = activeCredentialOffer.get();
+            if (context == null) {
+                activeCredentialOffer.compareAndSet(null, createCredentialOfferContext(buildDefaultStaffProfile()));
+            }
+            showIssuerCredentialOffer();
+            return;
+        }
+        currentStep.set(OnboardingStep.ISSUER_SPID_PROMPT);
+        issuerFlowState.set(IssuerFlowState.WAITING_FOR_WALLET);
+        activeCredentialOffer.set(null);
+        OnboardingQrResponse prompt = buildSpidPrompt();
+        publishUpdate(OnboardingStep.ISSUER_SPID_PROMPT, prompt);
+    }
+
+    public void showIssuerCredentialOffer() {
         currentStep.set(OnboardingStep.ISSUER_QR);
         issuerFlowState.set(IssuerFlowState.WAITING_FOR_WALLET);
-        OnboardingQrResponse issuerQr = buildIssuerQr();
+        OnboardingQrResponse issuerQr = buildCredentialOfferQr();
         publishUpdate(OnboardingStep.ISSUER_QR, issuerQr);
     }
 
@@ -96,6 +118,15 @@ public class OnboardingStateService {
             issuerFlowState.set(IssuerFlowState.IDLE);
         }
         return transitioned;
+    }
+
+    public void completeIssuerEnrollmentWithSpid(Oidc4vciService.StaffProfile profile) {
+        if (profile == null) {
+            return;
+        }
+        CredentialOfferContext context = createCredentialOfferContext(profile);
+        activeCredentialOffer.set(context);
+        showIssuerCredentialOffer();
     }
 
     public OnboardingStep getCurrentStep() {
@@ -132,10 +163,18 @@ public class OnboardingStateService {
         );
     }
 
+    private OnboardingQrResponse buildIssuerState() {
+        OnboardingStep step = currentStep.get();
+        if (step == OnboardingStep.ISSUER_SPID_PROMPT) {
+            return buildSpidPrompt();
+        }
+        return buildIssuerQr();
+    }
+
     private OnboardingQrResponse buildIssuerQr() {
         return resolveConfiguredIssuerPayload()
                 .map(this::buildConfiguredIssuerQr)
-                .orElseGet(this::buildSampleCredentialQr);
+                .orElseGet(this::buildCredentialOfferQr);
     }
 
     private Optional<String> resolveConfiguredIssuerPayload() {
@@ -164,31 +203,19 @@ public class OnboardingStateService {
         );
     }
 
-    private OnboardingQrResponse buildSampleCredentialQr() {
-        SampleCredentialOffer offer = ensureSampleCredentialOffer();
-        String payload = offer.qrPayload();
-        String description = "Wallet has no Izylife staff credential. Scan to start an OIDC4VCI credential offer.";
-        return new OnboardingQrResponse(
-                OnboardingStep.ISSUER_QR.name(),
-                "Import Sample Staff Credential",
-                description,
-                offer.helperText(),
-                payload,
-                qrCodeService.generatePngDataUri(payload)
-        );
-    }
-
     private void publishUpdate(OnboardingStep activeStep, OnboardingQrResponse stepQr) {
         if (stepQr == null) {
             return;
         }
 
-        OnboardingQrResponse verifier = activeStep == OnboardingStep.VP_REQUEST
-                ? stepQr
-                : buildVerifierSnapshot();
-        OnboardingQrResponse issuer = activeStep == OnboardingStep.ISSUER_QR
-                ? stepQr
-                : buildIssuerQr();
+        OnboardingQrResponse verifier = buildVerifierSnapshot();
+        OnboardingQrResponse issuer = buildIssuerState();
+
+        if (activeStep == OnboardingStep.VP_REQUEST) {
+            verifier = stepQr;
+        } else if (activeStep == OnboardingStep.ISSUER_SPID_PROMPT || activeStep == OnboardingStep.ISSUER_QR) {
+            issuer = stepQr;
+        }
 
         OnboardingStatusResponse status = new OnboardingStatusResponse(
                 activeStep.name(),
@@ -196,6 +223,12 @@ public class OnboardingStateService {
                 verifier,
                 issuer
         );
+
+        LOGGER.debug("Publishing onboarding update: step={} issuerState={} verifierStep={} issuerStep={}",
+                status.getCurrentStep(),
+                status.getIssuerState(),
+                verifier != null ? verifier.getStep() : null,
+                issuer != null ? issuer.getStep() : null);
 
         messagingTemplate.convertAndSend(ONBOARDING_TOPIC, status);
     }
@@ -213,7 +246,6 @@ public class OnboardingStateService {
         boolean refreshed = false;
         if (authorization == null || oidc4VpRequestService.resolveSession(authorization.state()).isEmpty()) {
             authorization = refreshAuthorizationRequest();
-            currentStep.set(OnboardingStep.VP_REQUEST);
             refreshed = true;
         }
         return new AuthorizationState(authorization, refreshed);
@@ -225,10 +257,93 @@ public class OnboardingStateService {
         return authorization;
     }
 
-    private SampleCredentialOffer buildSampleCredentialOffer() {
-        String issuerEndpoint = resolveIssuerEndpoint();
+    private OnboardingQrResponse buildCredentialOfferQr() {
+        CredentialOfferContext context = ensureCredentialOfferContext();
+        String description = "Wallet has no Izylife staff credential. Scan to start an OIDC4VCI credential offer.";
+        return new OnboardingQrResponse(
+                OnboardingStep.ISSUER_QR.name(),
+                "Import Izylife Staff Credential",
+                description,
+                context.helperText(),
+                context.qrPayload(),
+                qrCodeService.generatePngDataUri(context.qrPayload())
+        );
+    }
 
-        Oidc4vciService.StaffProfile profile = new Oidc4vciService.StaffProfile(
+    private OnboardingQrResponse buildSpidPrompt() {
+        AppProperties.SpidProperties spid = Optional.ofNullable(appProperties.getSpid()).orElseGet(AppProperties.SpidProperties::new);
+        String description = "Autenticati con SPID per generare l'offerta di credenziali del personale Izylife.";
+        String loginUrl = resolveSpidLoginUrl(spid);
+        return new OnboardingQrResponse(
+                OnboardingStep.ISSUER_SPID_PROMPT.name(),
+                "Accesso richiesto",
+                description,
+                "Avvia l'autenticazione SPID per proseguire.",
+                null,
+                null,
+                "Entra con SPID",
+                loginUrl
+        );
+    }
+
+    private String resolveSpidLoginUrl(AppProperties.SpidProperties spid) {
+        String rawPath = Optional.ofNullable(spid.getLoginPath()).filter(path -> !path.isBlank()).orElse("/saml2/authenticate/" + spid.getRegistrationId());
+        if (isAbsoluteUrl(rawPath)) {
+            return rawPath;
+        }
+
+        String baseUrl = Optional.ofNullable(appProperties.getVerifier())
+                .map(AppProperties.VerifierProperties::getEndpoint)
+                .filter(this::isNotBlank)
+                .orElseGet(() -> Optional.ofNullable(appProperties.getIssuer())
+                        .map(AppProperties.IssuerProperties::getEndpoint)
+                        .filter(this::isNotBlank)
+                        .orElse(""));
+
+        if (baseUrl.isBlank()) {
+            return rawPath;
+        }
+
+        if (baseUrl.endsWith("/")) {
+            baseUrl = baseUrl.substring(0, baseUrl.length() - 1);
+        }
+        return rawPath.startsWith("/") ? baseUrl + rawPath : baseUrl + "/" + rawPath;
+    }
+
+    private boolean isAbsoluteUrl(String value) {
+        return value.startsWith("http://") || value.startsWith("https://");
+    }
+
+    private boolean isNotBlank(String value) {
+        return value != null && !value.isBlank();
+    }
+
+    private CredentialOfferContext ensureCredentialOfferContext() {
+        CredentialOfferContext context = activeCredentialOffer.get();
+        if (context != null && oidc4vciService.findOfferById(context.offer().offerId()).isPresent()) {
+            return context;
+        }
+        CredentialOfferContext refreshed = createCredentialOfferContext(buildDefaultStaffProfile());
+        activeCredentialOffer.set(refreshed);
+        return refreshed;
+    }
+
+    private CredentialOfferContext createCredentialOfferContext(Oidc4vciService.StaffProfile profile) {
+        String issuerEndpoint = resolveIssuerEndpoint();
+        Oidc4vciService.CredentialOfferRecord offer = oidc4vciService.createStaffCredentialOffer(profile);
+        try {
+            String helperText = String.format("issuer_state=%s | pre-authorized grant available", offer.issuerState());
+            String offerJson = objectMapper.writeValueAsString(oidc4vciService.buildCredentialOffer(offer));
+            String encoded = URLEncoder.encode(offerJson, StandardCharsets.UTF_8);
+            String qrPayload = "openid-credential-offer://?credential_offer=" + encoded;
+            return new CredentialOfferContext(offer, profile, helperText, qrPayload);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Unable to serialise credential offer", ex);
+        }
+    }
+
+    private Oidc4vciService.StaffProfile buildDefaultStaffProfile() {
+        return new Oidc4vciService.StaffProfile(
                 "did:key:z6MkjsPve3QFtSobhVYqgv48tSxB6v6y7sgbhR8nTBiq7bYd",
                 "Rivera",
                 "Jamie",
@@ -236,32 +351,6 @@ public class OnboardingStateService {
                 "IZY-OPS-001",
                 "jamie.rivera@izylife.example"
         );
-
-        Oidc4vciService.CredentialOfferRecord offer = oidc4vciService.createStaffCredentialOffer(profile);
-        try {
-            String offerUri = issuerEndpoint + "/oidc4vci/credential-offers/" + offer.offerId();
-            String helperText = String.format("issuer_state=%s | pre-authorized grant available", offer.issuerState());
-            String offerJson = objectMapper.writeValueAsString(oidc4vciService.buildCredentialOffer(offer));
-            String encoded = URLEncoder.encode(offerJson, StandardCharsets.UTF_8);
-            String qrPayload = "openid-credential-offer://?credential_offer=" + encoded;
-            return new SampleCredentialOffer(
-                    offer.offerId(),
-                    qrPayload,
-                    helperText
-            );
-        } catch (JsonProcessingException ex) {
-            throw new IllegalStateException("Unable to serialise sample credential offer", ex);
-        }
-    }
-
-    private SampleCredentialOffer ensureSampleCredentialOffer() {
-        SampleCredentialOffer current = sampleCredentialOffer.get();
-        if (current != null && oidc4vciService.findOfferById(current.offerId()).isPresent()) {
-            return current;
-        }
-        SampleCredentialOffer refreshed = buildSampleCredentialOffer();
-        sampleCredentialOffer.set(refreshed);
-        return refreshed;
     }
 
     private String resolveIssuerEndpoint() {
@@ -271,7 +360,10 @@ public class OnboardingStateService {
                 .orElse("http://localhost:9090");
     }
 
-    private record SampleCredentialOffer(String offerId, String qrPayload, String helperText) {
+    private record CredentialOfferContext(Oidc4vciService.CredentialOfferRecord offer,
+                                          Oidc4vciService.StaffProfile profile,
+                                          String helperText,
+                                          String qrPayload) {
     }
 
     private record AuthorizationState(Oidc4VpRequestService.AuthorizationRequest authorization, boolean refreshed) {

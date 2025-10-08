@@ -17,8 +17,8 @@ export interface OnboardingQr {
   title: string;
   description: string;
   helperText?: string;
-  qrCodePayload: string;
-  qrCodeImageDataUrl: string;
+  qrCodePayload?: string;
+  qrCodeImageDataUrl?: string;
   actionLabel?: string;
   actionUrl?: string;
   credentialPreview?: CredentialPreview;
@@ -150,9 +150,9 @@ export class OnboardingService implements OnDestroy {
     const verifier = status['verifier'];
     const issuer = status['issuer'];
 
-    if (currentStep === 'ISSUER_QR' && issuer) {
+    if (issuer && typeof currentStep === 'string' && currentStep.startsWith('ISSUER')) {
       const qr = this.normalizeQr(issuer as Record<string, unknown>);
-      qr.step = 'ISSUER_QR';
+      qr.step = currentStep;
       return qr;
     }
 
@@ -164,26 +164,19 @@ export class OnboardingService implements OnDestroy {
       return qr;
     }
 
-    if (issuer) {
-      const qr = this.normalizeQr(issuer as Record<string, unknown>);
-      if (currentStep) {
-        qr.step = currentStep;
-      }
-      return qr;
-    }
-
     throw new Error('Unsupported onboarding status payload');
   }
 
   private normalizeQr(source: Record<string, unknown>): OnboardingQr {
+    const step = this.extractString(source, ['step']) ?? 'VP_REQUEST';
     const qrCodeImageDataUrl = this.extractString(source, ['qrCodeImageDataUrl', 'qrImageDataUrl']);
     const qrCodePayload = this.extractString(source, ['qrCodePayload', 'payload']);
 
-    if (!qrCodeImageDataUrl || !qrCodePayload) {
+    const qrDataRequired = step !== 'ISSUER_SPID_PROMPT';
+    if (qrDataRequired && (!qrCodeImageDataUrl || !qrCodePayload)) {
       throw new Error('Missing QR code data in onboarding payload');
     }
 
-    const step = this.extractString(source, ['step']) ?? 'VP_REQUEST';
     const title = this.extractString(source, ['title', 'label']) ?? 'Verifiable Presentation Request';
     const description = this.extractString(source, ['description', 'instructions'])
       ?? 'Scan this code with your SSI wallet to continue the verification flow.';
@@ -196,15 +189,20 @@ export class OnboardingService implements OnDestroy {
       title,
       description,
       helperText: helperText ?? undefined,
-      qrCodePayload,
-      qrCodeImageDataUrl,
       actionLabel: actionLabel ?? undefined,
       actionUrl: actionUrl ?? undefined
     };
 
-    const credentialPreview = this.extractCredentialPreview(qrCodePayload);
-    if (credentialPreview) {
-      qr.credentialPreview = credentialPreview;
+    if (qrCodePayload) {
+      qr.qrCodePayload = qrCodePayload;
+      const credentialPreview = this.extractCredentialPreview(qrCodePayload);
+      if (credentialPreview) {
+        qr.credentialPreview = credentialPreview;
+      }
+    }
+
+    if (qrCodeImageDataUrl) {
+      qr.qrCodeImageDataUrl = qrCodeImageDataUrl;
     }
 
     return qr;

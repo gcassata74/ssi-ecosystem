@@ -15,7 +15,7 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
   pageTitle = 'Izylife Verifier Portal';
   private updatesSub?: Subscription;
   private lastStep?: string;
-  private readonly issuerStep = 'ISSUER_QR';
+  private readonly issuerSteps = new Set(['ISSUER_QR', 'ISSUER_SPID_PROMPT']);
 
   constructor(
     private readonly onboardingService: OnboardingService,
@@ -41,7 +41,12 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
   }
 
   get isIssuerStep(): boolean {
-    return this.qr?.step === this.issuerStep;
+    const step = this.qr?.step;
+    return !!step && this.issuerSteps.has(step);
+  }
+
+  get isSpidPrompt(): boolean {
+    return this.qr?.step === 'ISSUER_SPID_PROMPT';
   }
 
   get credentialSubjectEntries(): Array<{ key: string; value: unknown }> {
@@ -54,6 +59,13 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
 
   retry(): void {
     this.loadQr();
+  }
+
+  startSpidLogin(): void {
+    if (!this.qr?.actionUrl) {
+      return;
+    }
+    window.location.href = this.qr.actionUrl;
   }
 
   private loadQr(): void {
@@ -73,17 +85,21 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
   }
 
   private syncRouteWithStep(step?: string): void {
-    if (!step || step === this.lastStep) {
+    if (!step) {
       return;
     }
 
-    const issuerActive = step === this.issuerStep;
+    const issuerActive = this.issuerSteps.has(step);
     const targetPath = issuerActive ? '/issuer' : '/verifier';
-    if (!this.router.url.startsWith(targetPath)) {
-      // Allow backend-driven flow changes (over STOMP) to drive navigation.
+    const needsNavigation = !this.router.url.startsWith(targetPath);
+
+    if (needsNavigation) {
       this.router.navigateByUrl(targetPath, { replaceUrl: true }).catch(() => undefined);
     }
-    this.lastStep = step;
+
+    if (step !== this.lastStep) {
+      this.lastStep = step;
+    }
   }
 
   private updatePageTitle(): void {

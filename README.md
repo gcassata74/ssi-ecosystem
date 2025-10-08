@@ -63,6 +63,23 @@ java -jar target/ssi-issuer-verifier-0.0.1-SNAPSHOT.jar
 
 Open `http://localhost:8080` to access the Izylife issuer/verifier portal.
 
+## SPID test IdP configuration
+
+Set up the SAML2 Service Provider to authenticate against the official SPID demo IdP (`https://demo.spid.gov.it/metadata.xml`) by enabling the SPID block in `application.yml` (or via environment variables):
+
+```yaml
+app:
+  spid:
+    enabled: true
+    registration-id: spid
+    entity-id: https://<your-domain>/spid
+    assertion-consumer-service: https://<your-domain>/login/saml2/sso/spid
+    signing-certificate-location: file:/path/to/sp-signing-cert.pem
+    signing-key-location: file:/path/to/sp-signing-key.pem
+```
+
+The defaults already point `identity-provider-metadata-location` to the demo IdP metadata, so no further overrides are required unless you host a local copy. Remember to provide a valid X.509 certificate and its matching PKCS#8 private key for the SP signing/decryption credentials and ensure the ACS URL is reachable from the SPID network.
+
 ## API overview
 
 - `GET /api/credentials/templates` – Retrieve available credential templates with required claim fields.
