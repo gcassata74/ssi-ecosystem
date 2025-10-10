@@ -40,11 +40,14 @@
       </div>
     </div>
 
-    <div *ngIf="isSpidPrompt && qr.actionUrl" class="spid-action">
-      <button type="button" class="spid-button" (click)="startSpidLogin()">
-        {{ qr.actionLabel || 'Entra con SPID' }}
-      </button>
+    <div *ngIf="isSpidPrompt && spidLoginUrl" class="spid-action">
+      <a class="spid-button" [href]="spidLoginUrl">
+        {{ qr?.actionLabel || 'Accedi con SPID demo' }}
+      </a>
     </div>
+    <p *ngIf="isSpidPrompt && !spidLoginUrl" class="spid-helper">
+      Unable to start SPID login because the configuration is missing.
+    </p>
 
     <div *ngIf="(!isSpidPrompt && qr.qrCodeImageDataUrl)" class="qr-wrapper">
       <img [src]="qr.qrCodeImageDataUrl" [alt]="'QR code for ' + qr.title" />

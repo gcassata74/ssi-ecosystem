@@ -16,6 +16,7 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
   private updatesSub?: Subscription;
   private lastStep?: string;
   private readonly issuerSteps = new Set(['ISSUER_QR', 'ISSUER_SPID_PROMPT']);
+  spidLoginUrl?: string;
 
   constructor(
     private readonly onboardingService: OnboardingService,
@@ -30,6 +31,7 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
       this.qr = update;
       this.loading = false;
       this.error = undefined;
+      this.spidLoginUrl = this.normalizeSpidLoginUrl(update.actionUrl);
       this.syncRouteWithStep(update.step);
     });
 
@@ -61,13 +63,6 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
     this.loadQr();
   }
 
-  startSpidLogin(): void {
-    if (!this.qr?.actionUrl) {
-      return;
-    }
-    window.location.href = this.qr.actionUrl;
-  }
-
   private loadQr(): void {
     this.loading = true;
     this.error = undefined;
@@ -75,6 +70,7 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
       next: qr => {
         this.qr = qr;
         this.loading = false;
+        this.spidLoginUrl = this.normalizeSpidLoginUrl(qr.actionUrl);
         this.syncRouteWithStep(qr.step);
       },
       error: () => {
@@ -105,5 +101,14 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
   private updatePageTitle(): void {
     const view = this.route.snapshot.data['view'];
     this.pageTitle = view === 'issuer' ? 'Izylife Issuer Portal' : 'Izylife Verifier Portal';
+  }
+
+  private normalizeSpidLoginUrl(actionUrl?: string): string | undefined {
+    if (!actionUrl) {
+      return undefined;
+    }
+
+    const trimmed = actionUrl.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
   }
 }

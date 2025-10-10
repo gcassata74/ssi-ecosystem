@@ -80,6 +80,14 @@ app:
 
 The defaults already point `identity-provider-metadata-location` to the demo IdP metadata, so no further overrides are required unless you host a local copy. Remember to provide a valid X.509 certificate and its matching PKCS#8 private key for the SP signing/decryption credentials and ensure the ACS URL is reachable from the SPID network.
 
+With the backend running you can export the signed SP metadata expected by the SPID validator via:
+
+```bash
+curl -s http://localhost:9090/spid/metadata > spid-metadata.xml
+```
+
+The metadata document is signed with RSA-SHA256 (exclusive canonicalisation) and already includes the administrative, technical, and `other` contacts plus the SPID-specific requested attributes. During the onboarding flow the application also logs each `AuthnRequest` (POST binding, `SpidL2`, NameID transient) so you can capture the exact request that will be submitted to `https://demo.spid.gov.it/samlsso`.
+
 ## API overview
 
 - `GET /api/credentials/templates` – Retrieve available credential templates with required claim fields.

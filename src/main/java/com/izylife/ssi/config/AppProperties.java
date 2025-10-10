@@ -82,9 +82,10 @@ public class AppProperties {
         private String organizationDisplayNameEn = "Izylife";
         private String organizationUrlEn = "https://www.izylife.com";
         private String contactCompany = "Izylife Solutions S.R.L.";
-        private String administrativeEmail = "mailto:admin@izylife.com";
+        private String contactEmail = "info@izylifesolutions.com";
+        private String administrativeEmail = "admin@izylife.com";
         private String administrativeTelephone = "+39-010-1234567";
-        private String technicalEmail = "mailto:tech@izylife.com";
+        private String technicalEmail = "tech@izylife.com";
         private String technicalTelephone = "+39-010-1234567";
         private String purpose = "Accesso area riservata Izylife";
         private Integer attributeConsumingServiceIndex = 1;

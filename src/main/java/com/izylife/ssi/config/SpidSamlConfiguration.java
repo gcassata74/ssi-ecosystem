@@ -23,6 +23,15 @@ import org.opensaml.saml.saml2.core.impl.AuthnContextClassRefBuilder;
 import org.opensaml.saml.saml2.core.impl.ExtensionsBuilder;
 import org.opensaml.saml.saml2.core.impl.NameIDPolicyBuilder;
 import org.opensaml.saml.saml2.core.impl.RequestedAuthnContextBuilder;
+import org.opensaml.security.SecurityException;
+import org.opensaml.security.x509.BasicX509Credential;
+import org.opensaml.xmlsec.SignatureSigningParameters;
+import org.opensaml.xmlsec.keyinfo.impl.X509KeyInfoGeneratorFactory;
+import org.opensaml.xmlsec.signature.Signature;
+import org.opensaml.xmlsec.signature.support.SignatureConstants;
+import org.opensaml.xmlsec.signature.support.SignatureException;
+import org.opensaml.xmlsec.signature.support.SignatureSupport;
+import org.opensaml.xmlsec.signature.support.Signer;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -51,10 +60,12 @@ import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import javax.xml.namespace.QName;
 import java.util.Base64;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.time.Instant;
 import java.util.UUID;
+
 
 @Configuration
 @ConditionalOnProperty(prefix = "app.spid", name = "enabled", havingValue = "true")
@@ -147,7 +158,6 @@ public class SpidSamlConfiguration {
         }
         authnRequest.setIssueInstant(Instant.now());
         authnRequest.setForceAuthn(Boolean.TRUE);
-        authnRequest.setIsPassive(Boolean.FALSE);
         authnRequest.setProtocolBinding(SAMLConstants.SAML2_POST_BINDING_URI);
         String destination = context.getRelyingPartyRegistration()
                 .getAssertingPartyDetails()
@@ -157,13 +167,20 @@ public class SpidSamlConfiguration {
         }
         authnRequest.setDestination(destination);
 
-        if (spid.getAttributeConsumingServiceIndex() != null) {
-            authnRequest.setAttributeConsumingServiceIndex(spid.getAttributeConsumingServiceIndex());
+        Integer attributeIndex = spid.getAttributeConsumingServiceIndex();
+        if (attributeIndex == null) {
+            attributeIndex = 1;
         }
+        authnRequest.setAttributeConsumingServiceIndex(attributeIndex);
 
         Issuer issuer = authnRequest.getIssuer();
         if (issuer != null) {
             issuer.setFormat(NameIDType.ENTITY);
+            String entityId = resolveEntityId(spid, context.getRelyingPartyRegistration());
+            if (entityId != null && !entityId.isBlank()) {
+                issuer.setValue(entityId);
+            }
+            issuer.setNameQualifier(null);
         }
 
         NameIDPolicy nameIdPolicy = ensureNameIdPolicy(authnRequest);
@@ -171,18 +188,27 @@ public class SpidSamlConfiguration {
         nameIdPolicy.setAllowCreate(Boolean.TRUE);
 
         RequestedAuthnContext requestedAuthnContext = ensureRequestedAuthnContext(authnRequest);
-        requestedAuthnContext.setComparison(resolveComparison(spid.getRequestedAuthnContextComparison()));
+        requestedAuthnContext.setComparison(AuthnContextComparisonTypeEnumeration.EXACT);
         requestedAuthnContext.getAuthnContextClassRefs().clear();
 
         List<String> requestedLevels = spid.getRequestedAuthnContextClassRefs();
-        if (requestedLevels == null || requestedLevels.isEmpty()) {
-            requestedLevels = List.of("https://www.spid.gov.it/SpidL2");
+        LinkedHashSet<String> authnLevels = new LinkedHashSet<>();
+        if (requestedLevels != null) {
+            for (String candidate : requestedLevels) {
+                if (candidate == null) {
+                    continue;
+                }
+                String trimmed = candidate.trim();
+                if (!trimmed.isEmpty()) {
+                    authnLevels.add(trimmed);
+                }
+            }
+        }
+        if (authnLevels.isEmpty()) {
+            authnLevels.add("https://www.spid.gov.it/SpidL2");
         }
         AuthnContextClassRefBuilder classRefBuilder = new AuthnContextClassRefBuilder();
-        for (String value : requestedLevels) {
-            if (value == null || value.isBlank()) {
-                continue;
-            }
+        for (String value : authnLevels) {
             AuthnContextClassRef reference = classRefBuilder.buildObject();
             reference.setURI(value);
             requestedAuthnContext.getAuthnContextClassRefs().add(reference);
@@ -190,9 +216,11 @@ public class SpidSamlConfiguration {
 
         applySpidExtensions(authnRequest, spid);
 
-        if (LOGGER.isDebugEnabled()) {
-            LOGGER.debug("SPID AuthnRequest built: {}", serialize(authnRequest));
-        }
+        signAuthnRequest(authnRequest, context.getRelyingPartyRegistration());
+
+        LOGGER.info("SPID AuthnRequest built for destination {}:\n{}",
+                authnRequest.getDestination(),
+                serialize(authnRequest));
     }
 
     private NameIDPolicy ensureNameIdPolicy(AuthnRequest authnRequest) {
@@ -211,17 +239,6 @@ public class SpidSamlConfiguration {
             authnRequest.setRequestedAuthnContext(context);
         }
         return context;
-    }
-
-    private AuthnContextComparisonTypeEnumeration resolveComparison(String comparison) {
-        if (comparison == null || comparison.isBlank()) {
-            return AuthnContextComparisonTypeEnumeration.EXACT;
-        }
-        try {
-            return AuthnContextComparisonTypeEnumeration.valueOf(comparison.trim().toUpperCase(Locale.ROOT));
-        } catch (IllegalArgumentException ignored) {
-            return AuthnContextComparisonTypeEnumeration.EXACT;
-        }
     }
 
     private void applySpidExtensions(AuthnRequest authnRequest, AppProperties.SpidProperties spid) {
@@ -289,6 +306,62 @@ public class SpidSamlConfiguration {
             throw new IllegalStateException("Unable to obtain XSAnyBuilder from OpenSAML registry");
         }
         return builder;
+    }
+
+    private String resolveEntityId(AppProperties.SpidProperties spid, RelyingPartyRegistration registration) {
+        String candidate = spid != null ? spid.getEntityId() : null;
+        if (candidate == null || candidate.isBlank()) {
+            candidate = registration != null ? registration.getEntityId() : null;
+        }
+        return (candidate != null && !candidate.isBlank()) ? candidate : null;
+    }
+
+    private void signAuthnRequest(AuthnRequest authnRequest, RelyingPartyRegistration registration) {
+        if (authnRequest == null || registration == null) {
+            return;
+        }
+        Collection<Saml2X509Credential> signingCredentials = registration.getSigningX509Credentials();
+        if (signingCredentials == null || signingCredentials.isEmpty()) {
+            LOGGER.warn("Skipping AuthnRequest signature: no signing credentials for registration {}", registration.getRegistrationId());
+            return;
+        }
+
+        Saml2X509Credential credential = signingCredentials.iterator().next();
+        Signature signature = (Signature) XMLObjectProviderRegistrySupport.getBuilderFactory()
+                .getBuilder(Signature.DEFAULT_ELEMENT_NAME)
+                .buildObject(Signature.DEFAULT_ELEMENT_NAME);
+
+        BasicX509Credential basicCredential = new BasicX509Credential(credential.getCertificate(), credential.getPrivateKey());
+        SignatureSigningParameters signingParameters = new SignatureSigningParameters();
+        signingParameters.setSigningCredential(basicCredential);
+        signingParameters.setSignatureAlgorithm(SignatureConstants.ALGO_ID_SIGNATURE_RSA_SHA256);
+        signingParameters.setSignatureReferenceDigestMethod(SignatureConstants.ALGO_ID_DIGEST_SHA256);
+        signingParameters.setSignatureCanonicalizationAlgorithm(SignatureConstants.ALGO_ID_C14N_EXCL_OMIT_COMMENTS);
+
+        X509KeyInfoGeneratorFactory keyInfoGeneratorFactory = new X509KeyInfoGeneratorFactory();
+        keyInfoGeneratorFactory.setEmitEntityCertificate(true);
+        signingParameters.setKeyInfoGenerator(keyInfoGeneratorFactory.newInstance());
+
+        try {
+            SignatureSupport.prepareSignatureParams(signature, signingParameters);
+        } catch (SecurityException ex) {
+            LOGGER.error("Unable to prepare AuthnRequest signature parameters", ex);
+            return;
+        }
+
+        authnRequest.setSignature(signature);
+
+        try {
+            Marshaller marshaller = XMLObjectProviderRegistrySupport.getMarshallerFactory().getMarshaller(authnRequest);
+            if (marshaller == null) {
+                throw new IllegalStateException("No OpenSAML marshaller for AuthnRequest");
+            }
+            marshaller.marshall(authnRequest);
+            Signer.signObject(signature);
+        } catch (MarshallingException | SignatureException | IllegalStateException ex) {
+            LOGGER.error("Failed to sign SPID AuthnRequest", ex);
+            authnRequest.setSignature(null);
+        }
     }
 
     private String serialize(AuthnRequest authnRequest) {

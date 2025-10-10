@@ -25,6 +25,6 @@ NR5/Z2YPDdQ8igmMQPjFnNYHkUEAgGT87yUXWLHzDTRwu6r/tmkDwOfuDAknjv87
         </ds:X509Data>
       </ds:KeyInfo>
     </KeyDescriptor>
-    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://idp.izylife.example/spid/sso" />
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://mica-semicivilized-heavily.ngrok-free.dev/spid/sso" />
   </IDPSSODescriptor>
 </EntityDescriptor>

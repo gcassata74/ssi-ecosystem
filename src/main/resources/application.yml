@@ -16,10 +16,10 @@ app:
       d: G-78W0e4pV0lTLuHNc8X96a_j3BIbjaa2avYeghwcAU
       alg: ES256
   verifier:
-    endpoint: ${APP_VERIFIER_ENDPOINT:http://verifier.izylife.com:9090}
+    endpoint: ${APP_VERIFIER_ENDPOINT:https://mica-semicivilized-heavily.ngrok-free.dev}
     challenge: demo-challenge
     qr-payload: "ssi://vp-request?audience=IzylifeVerifier&challenge=demo-challenge"
-    client-id: ${APP_VERIFIER_ENDPOINT:http://verifier.izylife.com:9090}/oidc4vp/responses
+    client-id: ${APP_VERIFIER_ENDPOINT:https://mica-semicivilized-heavily.ngrok-free.dev}/oidc4vp/responses
     client-id-scheme: redirect_uri
     response-mode: direct_post
     request-audience: https://self-issued.me/v2
@@ -44,10 +44,10 @@ app:
   spid:
     enabled: ${APP_SPID_ENABLED:false}
     registration-id: ${APP_SPID_REGISTRATION_ID:spid}
-    entity-id: ${APP_SPID_ENTITY_ID:https://issuer.izylife.com/spid}
-    assertion-consumer-service: ${APP_SPID_ASSERTION_CONSUMER_SERVICE:https://issuer.izylife.com/login/saml2/sso/spid}
+    entity-id: ${APP_SPID_ENTITY_ID:${APP_VERIFIER_ENDPOINT:https://mica-semicivilized-heavily.ngrok-free.dev}/spid}
+    assertion-consumer-service: ${APP_SPID_ASSERTION_CONSUMER_SERVICE:${APP_VERIFIER_ENDPOINT:https://mica-semicivilized-heavily.ngrok-free.dev}/login/saml2/sso/spid}
     single-sign-on-service-location: ${APP_SPID_SINGLE_SIGN_ON_SERVICE_LOCATION:}
-    single-logout-service-location: ${APP_SPID_SINGLE_LOGOUT_SERVICE_LOCATION:https://issuer.izylife.com/spid/logout}
+    single-logout-service-location: ${APP_SPID_SINGLE_LOGOUT_SERVICE_LOCATION:${APP_VERIFIER_ENDPOINT:https://mica-semicivilized-heavily.ngrok-free.dev}/saml2/logout}
     signing-certificate-location: ${APP_SPID_SIGNING_CERTIFICATE_LOCATION:classpath:spid/sp-signing-cert.pem}
     signing-key-location: ${APP_SPID_SIGNING_KEY_LOCATION:classpath:spid/sp-signing-key.pem}
     identity-provider-metadata-location: ${APP_SPID_IDP_METADATA_LOCATION:https://demo.spid.gov.it/metadata.xml}

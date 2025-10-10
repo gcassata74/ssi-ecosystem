@@ -185,24 +185,33 @@ details {
 
 .spid-action {
   margin: 1.5rem 0;
+  display: flex;
+  justify-content: center;
 }
 
 .spid-button {
-  padding: 0.75rem 2.5rem;
-  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 220px;
+  padding: 0.85rem 1.75rem;
   border-radius: 999px;
-  background: linear-gradient(135deg, #0b5ed7, #0a53be);
+  background: linear-gradient(135deg, #1d4ed8, #3b82f6);
   color: #ffffff;
-  font-size: 1rem;
   font-weight: 600;
-  cursor: pointer;
-  box-shadow: 0 10px 20px rgba(11, 94, 215, 0.25);
-  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  text-decoration: none;
+  box-shadow: 0 12px 24px rgba(59, 130, 246, 0.25);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .spid-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 14px 24px rgba(11, 94, 215, 0.3);
+  box-shadow: 0 16px 28px rgba(37, 99, 235, 0.3);
+}
+
+.spid-button:active {
+  transform: translateY(0);
+  box-shadow: 0 8px 16px rgba(37, 99, 235, 0.35);
 }
 
 .spid-helper {
