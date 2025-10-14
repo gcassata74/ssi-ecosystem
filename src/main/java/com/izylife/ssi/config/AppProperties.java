@@ -71,6 +71,7 @@ public class AppProperties {
         private String signingCertificateLocation;
         private String signingKeyLocation;
         private String identityProviderMetadataLocation;
+        private String authnRequestOutput;
         private String loginPath = "/saml2/authenticate/spid";
         private String postLoginRedirect = "/issuer";
         private String serviceNameIt = "Servizio Izylife";

@@ -3,6 +3,7 @@ package com.izylife.ssi.config;
 import com.izylife.ssi.security.SpidAuthenticationSuccessHandler;
 import com.izylife.ssi.service.OnboardingStateService;
 import com.izylife.ssi.service.SpidAttributeMapper;
+import com.izylife.ssi.service.SpidAuthnRequestStore;
 import org.opensaml.core.xml.XMLObjectBuilderFactory;
 import org.opensaml.core.xml.config.XMLObjectProviderRegistrySupport;
 import org.opensaml.core.xml.schema.XSAny;
@@ -84,6 +85,12 @@ public class SpidSamlConfiguration {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SpidSamlConfiguration.class);
 
+    private final SpidAuthnRequestStore spidAuthnRequestStore;
+
+    public SpidSamlConfiguration(SpidAuthnRequestStore spidAuthnRequestStore) {
+        this.spidAuthnRequestStore = spidAuthnRequestStore;
+    }
+
     @Bean
     public RelyingPartyRegistrationRepository relyingPartyRegistrationRepository(AppProperties appProperties,
                                                                                  ResourceLoader resourceLoader) {
@@ -135,7 +142,15 @@ public class SpidSamlConfiguration {
     public OpenSaml4AuthenticationRequestResolver spidAuthenticationRequestResolver(RelyingPartyRegistrationRepository repository,
                                                                                     AppProperties appProperties) {
         OpenSaml4AuthenticationRequestResolver resolver = new OpenSaml4AuthenticationRequestResolver(repository);
-        resolver.setAuthnRequestCustomizer(context -> customizeAuthnRequest(context, appProperties.getSpid()));
+        resolver.setAuthnRequestCustomizer(context -> {
+            customizeAuthnRequest(context, appProperties.getSpid());
+            if (spidAuthnRequestStore != null) {
+                AuthnRequest authnRequest = context.getAuthnRequest();
+                if (authnRequest != null) {
+                    spidAuthnRequestStore.update(serialize(authnRequest));
+                }
+            }
+        });
         return resolver;
     }
 

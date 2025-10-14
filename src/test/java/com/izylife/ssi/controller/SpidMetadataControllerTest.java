@@ -2,6 +2,7 @@ package com.izylife.ssi.controller;
 
 import com.izylife.ssi.config.AppProperties;
 import com.izylife.ssi.config.SpidSamlConfiguration;
+import com.izylife.ssi.service.SpidAuthnRequestStore;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 import org.opensaml.core.config.InitializationService;
@@ -37,7 +38,8 @@ class SpidMetadataControllerTest {
         spid.setSigningCertificateLocation("classpath:spid/sp-signing-cert.pem");
         spid.setSigningKeyLocation("classpath:spid/sp-signing-key.pem");
 
-        SpidSamlConfiguration configuration = new SpidSamlConfiguration();
+        SpidAuthnRequestStore store = new SpidAuthnRequestStore(properties);
+        SpidSamlConfiguration configuration = new SpidSamlConfiguration(store);
         RelyingPartyRegistrationRepository repository = configuration.relyingPartyRegistrationRepository(properties, new DefaultResourceLoader());
         SpidMetadataController controller = new SpidMetadataController(properties, repository);
 
