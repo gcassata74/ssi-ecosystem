@@ -40,6 +40,8 @@ app:
       - https://wallet.staff-credentials.com
       - https://*.staff-credentials.com
       - https://*.ngrok-free.app
+      - https://*.ngrok-free.dev
+      - https://demo.spid.gov.it
     allow-credentials: false
   spid:
     enabled: ${APP_SPID_ENABLED:false}

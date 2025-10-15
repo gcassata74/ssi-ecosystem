@@ -71,6 +71,7 @@ public class AppProperties {
         private String signingCertificateLocation;
         private String signingKeyLocation;
         private String identityProviderMetadataLocation;
+        private String identityProviderEntityId = "https://demo.spid.gov.it";
         private String authnRequestOutput;
         private String loginPath = "/saml2/authenticate/spid";
         private String postLoginRedirect = "/issuer";
@@ -89,6 +90,7 @@ public class AppProperties {
         private String technicalEmail = "tech@izylife.com";
         private String technicalTelephone = "+39-010-1234567";
         private String purpose = "Accesso area riservata Izylife";
+        private String purposeEn = "Izylife restricted area access";
         private Integer attributeConsumingServiceIndex = 1;
         private List<String> requestedAuthnContextClassRefs = List.of("https://www.spid.gov.it/SpidL2");
         private String requestedAuthnContextComparison = "exact";

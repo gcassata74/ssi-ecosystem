@@ -19,6 +19,7 @@ import java.io.StringReader;
 import java.security.cert.CertificateEncodingException;
 import java.security.cert.X509Certificate;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.w3c.dom.Document;
@@ -113,11 +114,16 @@ public class SpidMetadataController {
         String administrativeTelephone = firstNonBlank(spid.getAdministrativeTelephone(), "+39-010-1234567");
         String technicalEmail = normalizeEmail(firstNonBlank(spid.getTechnicalEmail(), "tech@izylife.com"));
         String technicalTelephone = firstNonBlank(spid.getTechnicalTelephone(), "+39-010-1234567");
+        int attributeConsumingServiceIndex = Optional.ofNullable(spid.getAttributeConsumingServiceIndex())
+                .map(value -> Math.max(0, value))
+                .orElse(1);
         String requestedAttributesXml = buildRequestedAttributes(spid, "      ");
+        String serviceDescriptionsXml = buildServiceDescriptions(spid, "      ");
 
         return ("""
                 <EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata"
                                   xmlns:ds="http://www.w3.org/2000/09/xmldsig#"
+                                  xmlns:spid="https://spid.gov.it/saml-extensions"
                                   entityID="%s"
                                   ID="%s">
                   <SPSSODescriptor AuthnRequestsSigned="true" WantAssertionsSigned="true"
@@ -137,9 +143,9 @@ public class SpidMetadataController {
                         Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-POST"
                         Location="%s"
                         index="0" isDefault="true"/>
-                    <AttributeConsumingService index="1" isDefault="true">
+                    <AttributeConsumingService index="%d" isDefault="true">
                       <ServiceName xml:lang="it">%s</ServiceName>
-                      <ServiceName xml:lang="en">%s</ServiceName>%s
+                      <ServiceName xml:lang="en">%s</ServiceName>%s%s
                     </AttributeConsumingService>
                   </SPSSODescriptor>
 
@@ -166,7 +172,7 @@ public class SpidMetadataController {
                     <Company>%s</Company>
                     <EmailAddress>%s</EmailAddress>
                     <Extensions>
-                      <Public xmlns="https://spid.gov.it/saml-extensions"/>
+                      <spid:Public/>
                     </Extensions>
                   </ContactPerson>
                 </EntityDescriptor>
@@ -178,8 +184,10 @@ public class SpidMetadataController {
                 encryptionCertificate,
                 sloLocation,
                 acsLocation,
+                attributeConsumingServiceIndex,
                 serviceNameIt,
                 serviceNameEn,
+                serviceDescriptionsXml,
                 requestedAttributesXml,
                 organizationNameIt,
                 organizationDisplayNameIt,
@@ -219,6 +227,32 @@ public class SpidMetadataController {
                     .append(" NameFormat=\"").append(nameFormat).append("\"")
                     .append(" isRequired=\"").append(attribute.isRequired()).append("\"")
                     .append("/>");
+        }
+        return builder.toString();
+    }
+
+    private String buildServiceDescriptions(SpidProperties spid, String indent) {
+        String purposeIt = firstNonBlank(spid.getPurpose(), "");
+        String purposeEn = firstNonBlank(spid.getPurposeEn(), purposeIt);
+
+        if (purposeIt.isBlank() && purposeEn.isBlank()) {
+            return "";
+        }
+
+        StringBuilder builder = new StringBuilder();
+        if (!purposeIt.isBlank()) {
+            builder.append('\n')
+                    .append(indent)
+                    .append("<ServiceDescription xml:lang=\"it\">")
+                    .append(purposeIt)
+                    .append("</ServiceDescription>");
+        }
+        if (!purposeEn.isBlank()) {
+            builder.append('\n')
+                    .append(indent)
+                    .append("<ServiceDescription xml:lang=\"en\">")
+                    .append(purposeEn)
+                    .append("</ServiceDescription>");
         }
         return builder.toString();
     }

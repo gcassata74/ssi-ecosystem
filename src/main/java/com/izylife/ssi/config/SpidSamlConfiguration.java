@@ -173,6 +173,7 @@ public class SpidSamlConfiguration {
         }
         authnRequest.setIssueInstant(Instant.now());
         authnRequest.setForceAuthn(Boolean.TRUE);
+        authnRequest.setIsPassive((Boolean) null);
         authnRequest.setProtocolBinding(SAMLConstants.SAML2_POST_BINDING_URI);
         String destination = context.getRelyingPartyRegistration()
                 .getAssertingPartyDetails()
@@ -195,15 +196,26 @@ public class SpidSamlConfiguration {
             if (entityId != null && !entityId.isBlank()) {
                 issuer.setValue(entityId);
             }
-            issuer.setNameQualifier(null);
+
+            String configuredIdpEntityId = spid.getIdentityProviderEntityId();
+            String assertingPartyEntityId = context.getRelyingPartyRegistration()
+                    .getAssertingPartyDetails()
+                    .getEntityId();
+            if (configuredIdpEntityId != null && !configuredIdpEntityId.isBlank()) {
+                issuer.setNameQualifier(configuredIdpEntityId);
+            } else if (assertingPartyEntityId != null && !assertingPartyEntityId.isBlank()) {
+                issuer.setNameQualifier(assertingPartyEntityId);
+            } else if (issuer.getValue() != null && !issuer.getValue().isBlank()) {
+                issuer.setNameQualifier(issuer.getValue());
+            }
         }
 
         NameIDPolicy nameIdPolicy = ensureNameIdPolicy(authnRequest);
         nameIdPolicy.setFormat(NameIDType.TRANSIENT);
-        nameIdPolicy.setAllowCreate(Boolean.TRUE);
+        nameIdPolicy.setAllowCreate((Boolean) null);
 
         RequestedAuthnContext requestedAuthnContext = ensureRequestedAuthnContext(authnRequest);
-        requestedAuthnContext.setComparison(AuthnContextComparisonTypeEnumeration.EXACT);
+        requestedAuthnContext.setComparison(resolveComparison(spid.getRequestedAuthnContextComparison()));
         requestedAuthnContext.getAuthnContextClassRefs().clear();
 
         List<String> requestedLevels = spid.getRequestedAuthnContextClassRefs();
@@ -254,6 +266,18 @@ public class SpidSamlConfiguration {
             authnRequest.setRequestedAuthnContext(context);
         }
         return context;
+    }
+
+    private AuthnContextComparisonTypeEnumeration resolveComparison(String configured) {
+        if (configured == null || configured.isBlank()) {
+            return AuthnContextComparisonTypeEnumeration.EXACT;
+        }
+        try {
+            return AuthnContextComparisonTypeEnumeration.valueOf(configured.trim().toUpperCase());
+        } catch (IllegalArgumentException ex) {
+            LOGGER.warn("Unsupported RequestedAuthnContext comparison '{}' - defaulting to EXACT", configured);
+            return AuthnContextComparisonTypeEnumeration.EXACT;
+        }
     }
 
     private void applySpidExtensions(AuthnRequest authnRequest, AppProperties.SpidProperties spid) {
@@ -385,11 +409,25 @@ public class SpidSamlConfiguration {
             if (marshaller == null) {
                 throw new IllegalStateException("No OpenSAML marshaller for AuthnRequest");
             }
-            return SerializeSupport.nodeToString(marshaller.marshall(authnRequest));
+            String xml = SerializeSupport.nodeToString(marshaller.marshall(authnRequest));
+            return stripXmlDeclaration(xml);
         } catch (MarshallingException ex) {
             LOGGER.warn("Unable to serialize SPID AuthnRequest for debugging", ex);
             return "<serialization-error/>";
         }
+    }
+
+    private String stripXmlDeclaration(String xml) {
+        if (xml == null || xml.isBlank()) {
+            return "";
+        }
+        if (xml.startsWith("<?xml")) {
+            int closing = xml.indexOf("?>");
+            if (closing >= 0) {
+                return xml.substring(closing + 2).stripLeading();
+            }
+        }
+        return xml;
     }
 
     private Saml2X509Credential buildSigningCredential(AppProperties.SpidProperties spid, ResourceLoader resourceLoader) {
