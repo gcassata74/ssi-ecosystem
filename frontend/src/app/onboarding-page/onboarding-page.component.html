@@ -15,31 +15,6 @@
     <h2>{{ qr.title }}</h2>
     <p class="description">{{ qr.description }}</p>
 
-    <div *ngIf="isIssuerStep && !isSpidPrompt && qr.credentialPreview as preview" class="issuer-details">
-      <p class="issuer-highlight">
-        No credential detected in the wallet response. Share this mock credential with the wallet to continue verification.
-      </p>
-      <ul class="credential-meta">
-        <li *ngIf="preview.issuerName || preview.issuerId">
-          <strong>Issuer:</strong>
-          <span>{{ preview.issuerName || preview.issuerId }}</span>
-        </li>
-        <li *ngIf="preview.type?.length">
-          <strong>Types:</strong>
-          <span>{{ preview.type.join(', ') }}</span>
-        </li>
-      </ul>
-      <div *ngIf="credentialSubjectEntries.length" class="credential-preview">
-        <h3>Credential Subject</h3>
-        <dl>
-          <div *ngFor="let entry of credentialSubjectEntries">
-            <dt>{{ entry.key }}</dt>
-            <dd>{{ entry.value }}</dd>
-          </div>
-        </dl>
-      </div>
-    </div>
-
     <div *ngIf="isSpidPrompt && spidLoginUrl" class="spid-action">
       <a class="spid-button" [href]="spidLoginUrl">
         {{ qr?.actionLabel || 'Accedi con SPID demo' }}
@@ -59,10 +34,63 @@
       <summary>View payload</summary>
       <pre class="payload"><code>{{ payload }}</code></pre>
     </details>
-    <details *ngIf="isIssuerStep && !isSpidPrompt && qr.credentialPreview?.rawJson" class="credential-json">
+    <details *ngIf="qr.credentialPreview?.rawJson" class="credential-json">
       <summary>View credential JSON</summary>
       <pre class="payload"><code>{{ qr.credentialPreview.rawJson }}</code></pre>
     </details>
+
+    <div *ngIf="qr.credentialPreview as preview">
+      <div *ngIf="isIssuerStep && !isSpidPrompt; else verifierPreview" class="issuer-details">
+        <p class="issuer-highlight">
+          No credential detected in the wallet response. Share this mock credential with the wallet to continue verification.
+        </p>
+        <ul class="credential-meta">
+          <li *ngIf="preview.issuerName || preview.issuerId">
+            <strong>Issuer:</strong>
+            <span>{{ preview.issuerName || preview.issuerId }}</span>
+          </li>
+          <li *ngIf="preview.type?.length">
+            <strong>Types:</strong>
+            <span>{{ preview.type.join(', ') }}</span>
+          </li>
+        </ul>
+        <div *ngIf="credentialSubjectEntries.length" class="credential-preview">
+          <h3>Credential Subject</h3>
+          <dl>
+            <div *ngFor="let entry of credentialSubjectEntries">
+              <dt>{{ entry.key }}</dt>
+              <dd>{{ entry.value }}</dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+      <ng-template #verifierPreview>
+        <div class="verification-result">
+          <p class="verification-success">Authentication succeeded.</p>
+          <details class="credential-preview">
+            <summary>Current credentials</summary>
+            <div class="credential-preview-body">
+              <ul class="credential-meta" *ngIf="preview.issuerName || preview.issuerId || preview.type?.length">
+                <li *ngIf="preview.issuerName || preview.issuerId">
+                  <strong>Issuer:</strong>
+                  <span>{{ preview.issuerName || preview.issuerId }}</span>
+                </li>
+                <li *ngIf="preview.type?.length">
+                  <strong>Types:</strong>
+                  <span>{{ preview.type.join(', ') }}</span>
+                </li>
+              </ul>
+              <dl *ngIf="credentialSubjectEntries.length" class="credential-subject">
+                <div *ngFor="let entry of credentialSubjectEntries">
+                  <dt>{{ entry.key }}</dt>
+                  <dd>{{ entry.value }}</dd>
+                </div>
+              </dl>
+            </div>
+          </details>
+        </div>
+      </ng-template>
+    </div>
   </section>
 
 </main>

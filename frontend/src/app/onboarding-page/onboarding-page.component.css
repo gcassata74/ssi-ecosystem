@@ -99,10 +99,60 @@ h1 {
   box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
 }
 
-.credential-preview h3 {
+.issuer-details .credential-preview h3 {
   margin: 0 0 0.75rem;
   font-size: 1rem;
   color: #0f172a;
+}
+
+.verification-result {
+  margin-bottom: 1.5rem;
+  padding: 1.25rem;
+  background: #f5f3ff;
+  border-radius: 10px;
+  text-align: left;
+  box-shadow: inset 0 0 0 1px rgba(79, 70, 229, 0.15);
+}
+
+.verification-success {
+  margin: 0 0 1rem;
+  font-weight: 600;
+  color: #312e81;
+}
+
+.credential-preview summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #312e81;
+  list-style: none;
+}
+
+.credential-preview summary::marker,
+.credential-preview summary::-webkit-details-marker {
+  display: none;
+}
+
+.credential-preview summary::before {
+  content: '\25BC';
+  display: inline-block;
+  margin-right: 0.5rem;
+  transition: transform 0.2s ease;
+}
+
+.credential-preview[open] summary::before {
+  transform: rotate(-180deg);
+}
+
+.credential-preview-body {
+  margin-top: 0.75rem;
+  display: grid;
+  gap: 0.75rem;
+}
+
+.credential-subject {
+  margin: 0;
+  display: grid;
+  gap: 0.5rem;
 }
 
 .credential-preview dl {

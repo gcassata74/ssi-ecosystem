@@ -15,6 +15,7 @@ public class OnboardingQrResponse {
     private String qrCodeImageDataUrl;
     private String actionLabel;
     private String actionUrl;
+    private CredentialPreviewDto credentialPreview;
 
     public OnboardingQrResponse() {
     }
@@ -32,5 +33,10 @@ public class OnboardingQrResponse {
         this.qrCodeImageDataUrl = qrCodeImageDataUrl;
         this.actionLabel = actionLabel;
         this.actionUrl = actionUrl;
+    }
+
+    public OnboardingQrResponse withCredentialPreview(CredentialPreviewDto preview) {
+        this.credentialPreview = preview;
+        return this;
     }
 }

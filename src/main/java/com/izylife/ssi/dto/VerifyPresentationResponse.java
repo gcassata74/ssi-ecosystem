@@ -10,6 +10,7 @@ public class VerifyPresentationResponse {
     private String holderDid;
     private String reason;
     private boolean walletHasNoCredential;
+    private CredentialPreviewDto credentialPreview;
 
     public VerifyPresentationResponse() {
     }

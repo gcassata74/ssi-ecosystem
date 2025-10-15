@@ -3,6 +3,7 @@ package com.izylife.ssi.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.izylife.ssi.config.AppProperties;
+import com.izylife.ssi.dto.CredentialPreviewDto;
 import com.izylife.ssi.dto.OnboardingQrResponse;
 import com.izylife.ssi.dto.OnboardingStatusResponse;
 import org.slf4j.Logger;
@@ -43,6 +44,7 @@ public class OnboardingStateService {
     private final AtomicReference<CredentialOfferContext> activeCredentialOffer = new AtomicReference<>();
     private final AtomicReference<Oidc4VpRequestService.AuthorizationRequest> currentAuthorization = new AtomicReference<>();
     private final SimpMessagingTemplate messagingTemplate;
+    private final AtomicReference<CredentialPreviewDto> lastVerifiedCredential = new AtomicReference<>();
 
     public OnboardingStateService(AppProperties appProperties,
                                   QrCodeService qrCodeService,
@@ -78,6 +80,7 @@ public class OnboardingStateService {
 
     public void promptIssuerEnrollment() {
         AppProperties.SpidProperties spidProperties = appProperties.getSpid();
+        lastVerifiedCredential.set(null);
         if (spidProperties == null || !spidProperties.isEnabled()) {
             CredentialOfferContext context = activeCredentialOffer.get();
             if (context == null) {
@@ -106,6 +109,17 @@ public class OnboardingStateService {
         OnboardingQrResponse verifierQr = buildVerifierQr(authorization);
         publishUpdate(OnboardingStep.VP_REQUEST, verifierQr);
         issuerFlowState.compareAndSet(IssuerFlowState.CREDENTIALS_RECEIVED, IssuerFlowState.IDLE);
+    }
+
+    public void recordVerifiedCredential(CredentialPreviewDto preview) {
+        if (preview != null) {
+            lastVerifiedCredential.set(preview);
+        }
+        showVerifierQr();
+    }
+
+    public void clearVerifiedCredential() {
+        lastVerifiedCredential.set(null);
     }
 
     public boolean acknowledgeIssuerCredentialsReceived() {
@@ -160,7 +174,7 @@ public class OnboardingStateService {
                 helperText,
                 payload,
                 qrCodeService.generatePngDataUri(payload)
-        );
+        ).withCredentialPreview(lastVerifiedCredential.get());
     }
 
     private OnboardingQrResponse buildIssuerState() {

@@ -2,7 +2,9 @@ package com.izylife.ssi.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.izylife.ssi.config.AppProperties;
+import com.izylife.ssi.dto.CredentialPreviewDto;
 import com.izylife.ssi.dto.VerifyPresentationRequest;
 import com.izylife.ssi.dto.VerifyPresentationResponse;
 import org.springframework.stereotype.Service;
@@ -10,7 +12,9 @@ import org.springframework.stereotype.Service;
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
 import java.util.LinkedHashSet;
+import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 
 @Service
@@ -53,21 +57,28 @@ public class VerificationService {
                 return response;
             }
             if (!challengeMatches(presentation, request.getChallenge())) {
+                onboardingStateService.clearVerifiedCredential();
                 onboardingStateService.showVerifierQr();
                 return new VerifyPresentationResponse(false, null, "Presentation challenge does not match the verifier request.");
             }
             if (!submissionMatchesDefinition(request)) {
+                onboardingStateService.clearVerifiedCredential();
                 onboardingStateService.showVerifierQr();
                 return new VerifyPresentationResponse(false, null, "Presentation submission mapping does not satisfy the definition requirements.");
             }
 
             String holderDid = extractHolderDid(presentation);
-            onboardingStateService.showVerifierQr();
-            return new VerifyPresentationResponse(true, holderDid, "Presentation validated successfully.");
+            CredentialPreviewDto preview = buildCredentialPreview(presentation);
+            onboardingStateService.recordVerifiedCredential(preview);
+            VerifyPresentationResponse response = new VerifyPresentationResponse(true, holderDid, "Presentation validated successfully.");
+            response.setCredentialPreview(preview);
+            return response;
         } catch (IllegalArgumentException ex) {
+            onboardingStateService.clearVerifiedCredential();
             onboardingStateService.showVerifierQr();
             return new VerifyPresentationResponse(false, null, "Invalid presentation encoding: " + ex.getMessage());
         } catch (Exception ex) {
+            onboardingStateService.clearVerifiedCredential();
             onboardingStateService.showVerifierQr();
             return new VerifyPresentationResponse(false, null, "Failed to process presentation: " + ex.getMessage());
         }
@@ -159,5 +170,98 @@ public class VerificationService {
                 || lowerCase.contains("wallethasnocredential")
                 || lowerCase.contains("no_credential")
                 || lowerCase.contains("novc");
+    }
+
+    private CredentialPreviewDto buildCredentialPreview(JsonNode presentation) {
+        JsonNode credentials = presentation.path("verifiableCredential");
+        if (!credentials.isArray() || credentials.isEmpty()) {
+            return null;
+        }
+
+        JsonNode credentialNode = credentials.get(0);
+        if (credentialNode == null || credentialNode.isNull()) {
+            return null;
+        }
+
+        Map<String, Object> credentialMap;
+        String rawRepresentation;
+
+        if (credentialNode.isTextual()) {
+            String jwt = credentialNode.asText();
+            credentialMap = decodeJwt(jwt);
+            rawRepresentation = jwt;
+        } else if (credentialNode.isObject()) {
+            credentialMap = objectMapper.convertValue(credentialNode, new TypeReference<Map<String, Object>>() {});
+            rawRepresentation = credentialNode.toString();
+        } else {
+            return null;
+        }
+
+        if (credentialMap == null) {
+            return null;
+        }
+
+        Map<String, Object> vcSection = extractVcSection(credentialMap);
+        CredentialPreviewDto preview = new CredentialPreviewDto();
+        preview.setRawJson(rawRepresentation);
+
+        Object issuer = vcSection.getOrDefault("issuer", credentialMap.get("issuer"));
+        if (issuer == null) {
+            issuer = credentialMap.get("iss");
+        }
+        if (issuer instanceof String issuerId) {
+            preview.setIssuerId(issuerId);
+        } else if (issuer instanceof Map<?, ?> issuerMap) {
+            Object id = issuerMap.get("id");
+            Object name = issuerMap.get("name");
+            if (id instanceof String idString) {
+                preview.setIssuerId(idString);
+            }
+            if (name instanceof String nameString) {
+                preview.setIssuerName(nameString);
+            }
+        }
+
+        Object type = vcSection.get("type");
+        if (type instanceof List<?> typeList) {
+            List<String> types = typeList.stream()
+                    .filter(String.class::isInstance)
+                    .map(String.class::cast)
+                    .toList();
+            preview.setType(types);
+        }
+
+        Object subjectObj = vcSection.get("credentialSubject");
+        if (subjectObj instanceof Map<?, ?> subjectMap) {
+            Map<String, Object> subject = objectMapper.convertValue(subjectMap, new TypeReference<Map<String, Object>>() {});
+            preview.setSubject(subject);
+        }
+
+        return preview;
+    }
+
+    private Map<String, Object> decodeJwt(String jwt) {
+        if (jwt == null || jwt.isBlank()) {
+            return null;
+        }
+        String[] parts = jwt.split("\\.");
+        if (parts.length < 2) {
+            return null;
+        }
+        try {
+            byte[] payloadBytes = Base64.getUrlDecoder().decode(parts[1]);
+            return objectMapper.readValue(payloadBytes, new TypeReference<Map<String, Object>>() {});
+        } catch (Exception ex) {
+            return null;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> extractVcSection(Map<String, Object> credentialMap) {
+        Object vc = credentialMap.get("vc");
+        if (vc instanceof Map<?, ?> vcMap) {
+            return (Map<String, Object>) vcMap;
+        }
+        return credentialMap;
     }
 }

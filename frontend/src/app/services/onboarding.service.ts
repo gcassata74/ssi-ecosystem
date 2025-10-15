@@ -193,11 +193,18 @@ export class OnboardingService implements OnDestroy {
       actionUrl: actionUrl ?? undefined
     };
 
+    const serverPreview = this.normalizeServerCredentialPreview(source['credentialPreview']);
+    if (serverPreview) {
+      qr.credentialPreview = serverPreview;
+    }
+
     if (qrCodePayload) {
       qr.qrCodePayload = qrCodePayload;
-      const credentialPreview = this.extractCredentialPreview(qrCodePayload);
-      if (credentialPreview) {
-        qr.credentialPreview = credentialPreview;
+      if (!qr.credentialPreview) {
+        const credentialPreview = this.extractCredentialPreview(qrCodePayload);
+        if (credentialPreview) {
+          qr.credentialPreview = credentialPreview;
+        }
       }
     }
 
@@ -206,6 +213,35 @@ export class OnboardingService implements OnDestroy {
     }
 
     return qr;
+  }
+
+  private normalizeServerCredentialPreview(input: unknown): CredentialPreview | undefined {
+    if (!input || typeof input !== 'object') {
+      return undefined;
+    }
+    const record = input as Record<string, unknown>;
+    const issuerName = typeof record['issuerName'] === 'string' ? record['issuerName'] : undefined;
+    const issuerId = typeof record['issuerId'] === 'string' ? record['issuerId'] : undefined;
+    const rawJson = typeof record['rawJson'] === 'string' ? record['rawJson'] : undefined;
+
+    let type: string[] | undefined;
+    if (Array.isArray(record['type'])) {
+      type = record['type'].filter((item): item is string => typeof item === 'string');
+    }
+
+    const subject = this.extractSubject(record['subject']);
+
+    if (!issuerName && !issuerId && !type && !subject && !rawJson) {
+      return undefined;
+    }
+
+    return {
+      issuerName,
+      issuerId,
+      type,
+      subject,
+      rawJson
+    };
   }
 
   private extractString(source: Record<string, unknown>, keys: string[]): string | undefined {

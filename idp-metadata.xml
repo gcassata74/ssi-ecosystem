@@ -1,0 +1,30 @@
+<EntityDescriptor xmlns="urn:oasis:names:tc:SAML:2.0:metadata" entityID="https://idp.izylife.example/spid">
+  <IDPSSODescriptor protocolSupportEnumeration="urn:oasis:names:tc:SAML:2.0:protocol">
+    <KeyDescriptor use="signing">
+      <ds:KeyInfo xmlns:ds="http://www.w3.org/2000/09/xmldsig#">
+        <ds:X509Data>
+          <ds:X509Certificate>
+MIIDFTCCAf2gAwIBAgIUFFHtJ3yqcZKdv7GdqwtqbaM/OzQwDQYJKoZIhvcNAQEL
+BQAwGjEYMBYGA1UEAwwPSXp5bGlmZSBTUElEIFNQMB4XDTI1MTAwNzEzNTAyM1oX
+DTM1MTAwNTEzNTAyM1owGjEYMBYGA1UEAwwPSXp5bGlmZSBTUElEIFNQMIIBIjAN
+BgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEApEWYhV7rMVlELNLnVX0xPPMEA7Pk
+bgdKdMfSZf83MesSGqlLoII2J3ABZ1UQDSiLEPWd659dVBwlYFajIk3FtjZ6iPwf
+KJyu+Q+kr5Z7GkiM3fhvYMAOT3Qy25OMrwnICLwNcpaeJ8p3pMbDPYDc0fqbOADi
+t8XD6hXie/0H/vOG6b4DrUrbkTmYau4HExlzb3oLBzLamuKieHvZXznYMshlOXTE
+tDo6FawGfJQ+iiSmpvBsc5soJLc+L2OK487C5mUyS2WVpXjrP9VGSoLfyWtedOKV
+jyj1GyVCeeBk9y3pNkU/iudhcQrGEwbzOBfVIN6fQlx4fvpDMDrCafIaWQIDAQAB
+o1MwUTAdBgNVHQ4EFgQUmUMYHQWUMaVGQwEsOvhSfX/SVAcwHwYDVR0jBBgwFoAU
+mUMYHQWUMaVGQwEsOvhSfX/SVAcwDwYDVR0TAQH/BAUwAwEB/zANBgkqhkiG9w0B
+AQsFAAOCAQEAbK5bwyhfCtHIQsiEO/tMoQET7KQhwp2/pmd/bLnzUWTgD+y1RJuna
+PuRO/TcwaEHtzHVRWB1Krl2aCgvzDky03XawOD75mrPSvL1qXBPPWb84uzABlJK
+qf7J422Pjc9CqFyEnv7dfJA7HGOlPYoySURyzvKn3nmR9S6buDw/Sqw4bzJIPan1
+C/AJJoX+BPpGK8d+E91FBqbXqHmoEqG6GJmgNleLVcbHGid2HggeRZVKd/ARDRE6
+NR5/Z2YPDdQ8igmMQPjFnNYHkUEAgGT87yUXWLHzDTRwu6r/tmkDwOfuDAknjv87
+//4D4SA93gJmyAItmRwQzRrFFN68nJMLfw==
+          </ds:X509Certificate>
+        </ds:X509Data>
+      </ds:KeyInfo>
+    </KeyDescriptor>
+    <SingleSignOnService Binding="urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect" Location="https://mica-semicivilized-heavily.ngrok-free.dev/spid/sso" />
+  </IDPSSODescriptor>
+</EntityDescriptor>
