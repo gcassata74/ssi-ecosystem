@@ -78,6 +78,24 @@ public class OnboardingStateService {
         return buildIssuerState();
     }
 
+    public OnboardingQrResponse getIssuerQr() {
+        OnboardingStep step = currentStep.get();
+        if (step == OnboardingStep.ISSUER_SPID_PROMPT) {
+            return buildSpidPrompt();
+        }
+        if (step == OnboardingStep.ISSUER_QR) {
+            return buildCredentialOfferQr();
+        }
+
+        boolean spidEnabled = Optional.ofNullable(appProperties.getSpid())
+                .map(AppProperties.SpidProperties::isEnabled)
+                .orElse(false);
+        if (spidEnabled) {
+            return buildSpidPrompt();
+        }
+        return buildCredentialOfferQr();
+    }
+
     public void promptIssuerEnrollment() {
         AppProperties.SpidProperties spidProperties = appProperties.getSpid();
         lastVerifiedCredential.set(null);

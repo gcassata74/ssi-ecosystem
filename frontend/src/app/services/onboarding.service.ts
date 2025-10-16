@@ -87,6 +87,12 @@ export class OnboardingService implements OnDestroy {
     );
   }
 
+  fetchIssuer(): Observable<OnboardingQr> {
+    return this.http.get<unknown>('/api/onboarding/issuer').pipe(
+      map(payload => this.normalizeQr(payload as Record<string, unknown>))
+    );
+  }
+
   updates(): Observable<OnboardingQr> {
     return this.updatesSubject.asObservable();
   }

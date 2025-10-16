@@ -1,5 +1,6 @@
 package com.izylife.ssi.controller;
 
+import com.izylife.ssi.dto.OnboardingQrResponse;
 import com.izylife.ssi.dto.OnboardingStatusResponse;
 import com.izylife.ssi.service.OnboardingStateService;
 import org.springframework.http.HttpStatus;
@@ -23,6 +24,11 @@ public class OnboardingController {
     @GetMapping("/qr")
     public OnboardingStatusResponse getCurrentQr() {
         return onboardingStateService.getCurrentStatus();
+    }
+
+    @GetMapping("/issuer")
+    public OnboardingQrResponse getIssuerQr() {
+        return onboardingStateService.getIssuerQr();
     }
 
     @PostMapping("/issuer/credentials-received")

@@ -1,5 +1,5 @@
 import { Component, OnDestroy, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import { Subscription } from 'rxjs';
 import { OnboardingQr, OnboardingService } from '../services/onboarding.service';
 
@@ -14,13 +14,10 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
   qr?: OnboardingQr;
   pageTitle = 'Izylife Verifier Portal';
   private updatesSub?: Subscription;
-  private lastStep?: string;
-  private readonly issuerSteps = new Set(['ISSUER_QR', 'ISSUER_SPID_PROMPT']);
   spidLoginUrl?: string;
 
   constructor(
     private readonly onboardingService: OnboardingService,
-    private readonly router: Router,
     private readonly route: ActivatedRoute
   ) {}
 
@@ -32,10 +29,9 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
       this.loading = false;
       this.error = undefined;
       this.spidLoginUrl = this.normalizeSpidLoginUrl(update.actionUrl);
-      this.syncRouteWithStep(update.step);
     });
 
-    this.loadQr();
+    this.loadVerifierQr();
   }
 
   ngOnDestroy(): void {
@@ -44,7 +40,7 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
 
   get isIssuerStep(): boolean {
     const step = this.qr?.step;
-    return !!step && this.issuerSteps.has(step);
+    return step === 'ISSUER_QR' || step === 'ISSUER_SPID_PROMPT';
   }
 
   get isSpidPrompt(): boolean {
@@ -60,10 +56,10 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
   }
 
   retry(): void {
-    this.loadQr();
+    this.loadVerifierQr();
   }
 
-  private loadQr(): void {
+  private loadVerifierQr(): void {
     this.loading = true;
     this.error = undefined;
     this.onboardingService.fetchCurrent().subscribe({
@@ -71,31 +67,12 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
         this.qr = qr;
         this.loading = false;
         this.spidLoginUrl = this.normalizeSpidLoginUrl(qr.actionUrl);
-        this.syncRouteWithStep(qr.step);
       },
       error: () => {
         this.error = 'Unable to load the verifiable presentation request. Please try again.';
         this.loading = false;
       }
     });
-  }
-
-  private syncRouteWithStep(step?: string): void {
-    if (!step) {
-      return;
-    }
-
-    const issuerActive = this.issuerSteps.has(step);
-    const targetPath = issuerActive ? '/issuer' : '/verifier';
-    const needsNavigation = !this.router.url.startsWith(targetPath);
-
-    if (needsNavigation) {
-      this.router.navigateByUrl(targetPath, { replaceUrl: true }).catch(() => undefined);
-    }
-
-    if (step !== this.lastStep) {
-      this.lastStep = step;
-    }
   }
 
   private updatePageTitle(): void {
