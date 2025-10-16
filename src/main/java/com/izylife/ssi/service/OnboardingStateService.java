@@ -96,6 +96,20 @@ public class OnboardingStateService {
         return buildCredentialOfferQr();
     }
 
+    public void publishVerifierError(String message) {
+        Oidc4VpRequestService.AuthorizationRequest authorization = ensureActiveAuthorization().authorization();
+        OnboardingQrResponse verifier = buildVerifierQr(authorization);
+        OnboardingQrResponse issuer = buildIssuerState();
+        OnboardingStatusResponse status = new OnboardingStatusResponse(
+                currentStep.get().name(),
+                issuerFlowState.get().name(),
+                verifier,
+                issuer
+        );
+        status.setVerifierError(message);
+        messagingTemplate.convertAndSend(ONBOARDING_TOPIC, status);
+    }
+
     public void promptIssuerEnrollment() {
         AppProperties.SpidProperties spidProperties = appProperties.getSpid();
         lastVerifiedCredential.set(null);

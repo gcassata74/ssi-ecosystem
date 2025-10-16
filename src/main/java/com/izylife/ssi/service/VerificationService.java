@@ -51,7 +51,8 @@ public class VerificationService {
             JsonNode presentation = objectMapper.readTree(decoded);
 
             if (walletReportedMissingCredential(decoded) || !hasCredentials(presentation)) {
-                onboardingStateService.promptIssuerEnrollment();
+                onboardingStateService.clearVerifiedCredential();
+                onboardingStateService.publishVerifierError("Wallet has no verifiable credential to satisfy the request. Please issue the credential first.");
                 VerifyPresentationResponse response = new VerifyPresentationResponse(false, null, "Wallet has no verifiable credential to satisfy the request. Please issue the credential first.");
                 response.setWalletHasNoCredential(true);
                 return response;

@@ -22,6 +22,7 @@ export interface OnboardingQr {
   actionLabel?: string;
   actionUrl?: string;
   credentialPreview?: CredentialPreview;
+  errorMessage?: string;
 }
 
 @Injectable({ providedIn: 'root' })
@@ -155,6 +156,7 @@ export class OnboardingService implements OnDestroy {
 
     const verifier = status['verifier'];
     const issuer = status['issuer'];
+    const verifierError = this.extractString(status, ['verifierError']);
 
     if (issuer && typeof currentStep === 'string' && currentStep.startsWith('ISSUER')) {
       const qr = this.normalizeQr(issuer as Record<string, unknown>);
@@ -166,6 +168,9 @@ export class OnboardingService implements OnDestroy {
       const qr = this.normalizeQr(verifier as Record<string, unknown>);
       if (currentStep) {
         qr.step = currentStep;
+      }
+      if (verifierError) {
+        qr.errorMessage = verifierError;
       }
       return qr;
     }

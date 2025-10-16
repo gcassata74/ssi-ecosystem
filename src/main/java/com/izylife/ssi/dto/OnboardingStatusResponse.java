@@ -11,6 +11,7 @@ public class OnboardingStatusResponse {
     private String issuerState;
     private OnboardingQrResponse verifier;
     private OnboardingQrResponse issuer;
+    private String verifierError;
 
     public OnboardingStatusResponse() {
     }
@@ -24,5 +25,6 @@ public class OnboardingStatusResponse {
         this.issuerState = issuerState;
         this.verifier = verifier;
         this.issuer = issuer;
+        this.verifierError = null;
     }
 }

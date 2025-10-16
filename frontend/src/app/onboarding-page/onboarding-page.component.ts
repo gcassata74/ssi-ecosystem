@@ -27,7 +27,7 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
     this.updatesSub = this.onboardingService.updates().subscribe(update => {
       this.qr = update;
       this.loading = false;
-      this.error = undefined;
+      this.error = update.errorMessage ?? undefined;
       this.spidLoginUrl = this.normalizeSpidLoginUrl(update.actionUrl);
     });
 
@@ -66,6 +66,7 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
       next: qr => {
         this.qr = qr;
         this.loading = false;
+        this.error = qr.errorMessage ?? undefined;
         this.spidLoginUrl = this.normalizeSpidLoginUrl(qr.actionUrl);
       },
       error: () => {
