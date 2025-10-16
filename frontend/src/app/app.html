@@ -1,0 +1,38 @@
+<main class="app-shell">
+  <section class="card">
+    <h1 class="title">Welcome to the SSI Client</h1>
+    <p class="text">Start the verification flow by opening the Izylife verifier portal to scan the QR code.</p>
+    <button type="button" class="login-button" (click)="onLoginClick()">Go to Verifier</button>
+  </section>
+
+  <section class="card status">
+    <h2>Status</h2>
+    <p>Authentication state: <strong>{{ authStatus }}</strong></p>
+
+    <ng-container *ngIf="authStatus === 'authenticated'; else notAuthenticated">
+      <div class="identity-block">
+        <h3>Verified Identity</h3>
+        <p><strong>Holder DID:</strong> {{ holderDid || 'n/a' }}</p>
+
+        <div *ngIf="credentialEntries.length" class="claims">
+          <h4>Credential Claims</h4>
+          <dl>
+            <div *ngFor="let entry of credentialEntries">
+              <dt>{{ entry.key }}</dt>
+              <dd>{{ entry.value }}</dd>
+            </div>
+          </dl>
+        </div>
+
+        <details *ngIf="tokenPayloadJson" class="token-payload">
+          <summary>View access token payload</summary>
+          <pre>{{ tokenPayloadJson }}</pre>
+        </details>
+      </div>
+    </ng-container>
+
+    <ng-template #notAuthenticated>
+      <p>No verified credentials yet. Click the button above to start the verifier flow.</p>
+    </ng-template>
+  </section>
+</main>

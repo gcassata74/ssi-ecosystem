@@ -1,0 +1,107 @@
+:host {
+  display: block;
+  min-height: 100vh;
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  background: radial-gradient(circle at top, #141e30, #243b55);
+  color: #f7fafc;
+}
+
+.app-shell {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+.card {
+  max-width: 420px;
+  text-align: center;
+  padding: 2.5rem 2rem;
+  background: rgba(18, 29, 45, 0.6);
+  border-radius: 18px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.title {
+  margin: 0 0 1rem;
+  font-size: 2rem;
+  font-weight: 600;
+}
+
+.text {
+  margin: 0 0 2rem;
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #d2e1f2;
+}
+
+.login-button {
+  padding: 0.75rem 2.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #0c1531;
+  background: linear-gradient(135deg, #68d8d6, #6d79ff);
+  border: none;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.login-button:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px rgba(109, 121, 255, 0.35);
+}
+
+.login-button:active {
+  transform: translateY(0);
+  box-shadow: 0 6px 18px rgba(109, 121, 255, 0.25);
+}
+
+.card.status {
+  margin-top: 2rem;
+  text-align: left;
+  max-width: 520px;
+  background: rgba(18, 29, 45, 0.7);
+}
+
+.identity-block {
+  margin-top: 1.5rem;
+  padding: 1.5rem;
+  border-radius: 14px;
+  background: rgba(15, 23, 42, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.claims dl {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.5rem 1.5rem;
+  margin: 1rem 0 0;
+}
+
+.claims dt {
+  font-weight: 600;
+  color: #f7fafc;
+}
+
+.claims dd {
+  margin: 0;
+  color: #d2e1f2;
+}
+
+.token-payload {
+  margin-top: 1.5rem;
+}
+
+.token-payload pre {
+  background: rgba(15, 23, 42, 0.9);
+  color: #cbd5f5;
+  padding: 1rem;
+  border-radius: 12px;
+  overflow-x: auto;
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
