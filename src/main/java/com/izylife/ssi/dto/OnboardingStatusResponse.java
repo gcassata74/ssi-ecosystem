@@ -12,6 +12,9 @@ public class OnboardingStatusResponse {
     private OnboardingQrResponse verifier;
     private OnboardingQrResponse issuer;
     private String verifierError;
+    private String authorizationCode;
+    private String authorizationRedirectUri;
+    private String authorizationState;
 
     public OnboardingStatusResponse() {
     }

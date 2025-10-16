@@ -9,6 +9,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -22,12 +23,18 @@ public class OnboardingController {
     }
 
     @GetMapping("/qr")
-    public OnboardingStatusResponse getCurrentQr() {
+    public OnboardingStatusResponse getCurrentQr(@RequestParam(value = "client_id", required = false) String clientId,
+                                                 @RequestParam(value = "redirect_uri", required = false) String redirectUri,
+                                                 @RequestParam(value = "state", required = false) String state) {
+        onboardingStateService.updateClientContext(clientId, redirectUri, state);
         return onboardingStateService.getCurrentStatus();
     }
 
     @GetMapping("/issuer")
-    public OnboardingQrResponse getIssuerQr() {
+    public OnboardingQrResponse getIssuerQr(@RequestParam(value = "client_id", required = false) String clientId,
+                                            @RequestParam(value = "redirect_uri", required = false) String redirectUri,
+                                            @RequestParam(value = "state", required = false) String state) {
+        onboardingStateService.updateClientContext(clientId, redirectUri, state);
         return onboardingStateService.getIssuerQr();
     }
 

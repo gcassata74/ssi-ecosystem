@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, NgZone, OnDestroy } from '@angular/core';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
@@ -30,6 +30,8 @@ export class OnboardingService implements OnDestroy {
   private readonly updatesSubject = new Subject<OnboardingQr>();
   private readonly client: Client;
   private subscription?: StompSubscription;
+  private readonly launchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : new URLSearchParams();
+  private redirectInProgress = false;
 
   constructor(private readonly http: HttpClient, private readonly zone: NgZone) {
     this.client = new Client({
@@ -75,11 +77,12 @@ export class OnboardingService implements OnDestroy {
   }
 
   fetchCurrent(): Observable<OnboardingQr> {
-    return this.http.get<unknown>('/api/onboarding/qr').pipe(
+    const params = this.buildQueryParams();
+    return this.http.get<unknown>('/api/onboarding/qr', { params }).pipe(
       map(payload => this.normalizePayload(payload)),
       catchError(error => {
         if (error?.status === 404) {
-          return this.http.get<unknown>('/api/poc/vp-request').pipe(
+          return this.http.get<unknown>('/api/poc/vp-request', { params }).pipe(
             map(payload => this.normalizePayload(payload))
           );
         }
@@ -89,7 +92,7 @@ export class OnboardingService implements OnDestroy {
   }
 
   fetchIssuer(): Observable<OnboardingQr> {
-    return this.http.get<unknown>('/api/onboarding/issuer').pipe(
+    return this.http.get<unknown>('/api/onboarding/issuer', { params: this.buildQueryParams() }).pipe(
       map(payload => this.normalizeQr(payload as Record<string, unknown>))
     );
   }
@@ -158,6 +161,8 @@ export class OnboardingService implements OnDestroy {
     const issuer = status['issuer'];
     const verifierError = this.extractString(status, ['verifierError']);
 
+    this.handleAuthorizationRedirect(status);
+
     if (issuer && typeof currentStep === 'string' && currentStep.startsWith('ISSUER')) {
       const qr = this.normalizeQr(issuer as Record<string, unknown>);
       qr.step = currentStep;
@@ -176,6 +181,54 @@ export class OnboardingService implements OnDestroy {
     }
 
     throw new Error('Unsupported onboarding status payload');
+  }
+
+  private buildQueryParams(): HttpParams {
+    let params = new HttpParams();
+    const redirectUri = this.getLaunchParam('redirect_uri');
+    if (redirectUri) {
+      params = params.set('redirect_uri', redirectUri);
+    }
+    const clientId = this.getLaunchParam('client_id');
+    if (clientId) {
+      params = params.set('client_id', clientId);
+    }
+    const state = this.getLaunchParam('state');
+    if (state) {
+      params = params.set('state', state);
+    }
+    return params;
+  }
+
+  private getLaunchParam(name: string): string | undefined {
+    const value = this.launchParams.get(name);
+    return value ? value : undefined;
+  }
+
+  private handleAuthorizationRedirect(status: Record<string, unknown>): void {
+    if (this.redirectInProgress || typeof window === 'undefined') {
+      return;
+    }
+
+    const code = this.extractString(status, ['authorizationCode']);
+    const redirectUri = this.extractString(status, ['authorizationRedirectUri', 'redirectUri']);
+    if (!code || !redirectUri) {
+      return;
+    }
+
+    const authState = this.extractString(status, ['authorizationState', 'state']);
+
+    try {
+      const target = new URL(redirectUri, window.location.origin);
+      target.searchParams.set('code', code);
+      if (authState) {
+        target.searchParams.set('state', authState);
+      }
+      this.redirectInProgress = true;
+      window.location.assign(target.toString());
+    } catch (error) {
+      console.error('Failed to redirect after verifier authorization', error);
+    }
   }
 
   private normalizeQr(source: Record<string, unknown>): OnboardingQr {

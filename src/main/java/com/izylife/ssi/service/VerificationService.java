@@ -50,23 +50,25 @@ public class VerificationService {
             String decoded = new String(Base64.getDecoder().decode(request.getPresentationPayload()), StandardCharsets.UTF_8);
             JsonNode presentation = objectMapper.readTree(decoded);
 
-            if (walletReportedMissingCredential(decoded) || !hasCredentials(presentation)) {
-                onboardingStateService.clearVerifiedCredential();
-                onboardingStateService.publishVerifierError("Wallet has no verifiable credential to satisfy the request. Please issue the credential first.");
-                VerifyPresentationResponse response = new VerifyPresentationResponse(false, null, "Wallet has no verifiable credential to satisfy the request. Please issue the credential first.");
-                response.setWalletHasNoCredential(true);
-                return response;
-            }
-            if (!challengeMatches(presentation, request.getChallenge())) {
-                onboardingStateService.clearVerifiedCredential();
-                onboardingStateService.showVerifierQr();
-                return new VerifyPresentationResponse(false, null, "Presentation challenge does not match the verifier request.");
-            }
-            if (!submissionMatchesDefinition(request)) {
-                onboardingStateService.clearVerifiedCredential();
-                onboardingStateService.showVerifierQr();
-                return new VerifyPresentationResponse(false, null, "Presentation submission mapping does not satisfy the definition requirements.");
-            }
+        if (walletReportedMissingCredential(decoded) || !hasCredentials(presentation)) {
+            onboardingStateService.clearVerifiedCredential();
+            onboardingStateService.publishVerifierError("Wallet has no verifiable credential to satisfy the request. Please issue the credential first.");
+            VerifyPresentationResponse response = new VerifyPresentationResponse(false, null, "Wallet has no verifiable credential to satisfy the request. Please issue the credential first.");
+            response.setWalletHasNoCredential(true);
+            return response;
+        }
+        if (!challengeMatches(presentation, request.getChallenge())) {
+            onboardingStateService.clearVerifiedCredential();
+            onboardingStateService.showVerifierQr();
+            onboardingStateService.publishVerifierError("Presentation challenge does not match the verifier request.");
+            return new VerifyPresentationResponse(false, null, "Presentation challenge does not match the verifier request.");
+        }
+        if (!submissionMatchesDefinition(request)) {
+            onboardingStateService.clearVerifiedCredential();
+            onboardingStateService.showVerifierQr();
+            onboardingStateService.publishVerifierError("Presentation submission mapping does not satisfy the definition requirements.");
+            return new VerifyPresentationResponse(false, null, "Presentation submission mapping does not satisfy the definition requirements.");
+        }
 
             String holderDid = extractHolderDid(presentation);
             CredentialPreviewDto preview = buildCredentialPreview(presentation);
@@ -77,10 +79,12 @@ public class VerificationService {
         } catch (IllegalArgumentException ex) {
             onboardingStateService.clearVerifiedCredential();
             onboardingStateService.showVerifierQr();
+            onboardingStateService.publishVerifierError("Invalid presentation encoding: " + ex.getMessage());
             return new VerifyPresentationResponse(false, null, "Invalid presentation encoding: " + ex.getMessage());
         } catch (Exception ex) {
             onboardingStateService.clearVerifiedCredential();
             onboardingStateService.showVerifierQr();
+            onboardingStateService.publishVerifierError("Failed to process presentation: " + ex.getMessage());
             return new VerifyPresentationResponse(false, null, "Failed to process presentation: " + ex.getMessage());
         }
     }

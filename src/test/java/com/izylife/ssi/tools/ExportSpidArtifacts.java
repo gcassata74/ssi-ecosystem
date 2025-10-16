@@ -43,8 +43,8 @@ public final class ExportSpidArtifacts {
         AppProperties.SpidProperties spid = properties.getSpid();
         spid.setEnabled(true);
         spid.setIdentityProviderMetadataLocation("classpath:spid/mock-idp-metadata.xml");
-        spid.setEntityId("https://mica-semicivilized-heavily.ngrok-free.dev/spid");
-        spid.setAssertionConsumerService("https://mica-semicivilized-heavily.ngrok-free.dev/login/saml2/sso/spid");
+        spid.setEntityId("https://izylife-issuer.eu.ngrok.io/spid");
+        spid.setAssertionConsumerService("https://izylife-issuer.eu.ngrok.io/login/saml2/sso/spid");
         spid.setSingleSignOnServiceLocation("https://demo.spid.gov.it/samlsso");
         spid.setSigningCertificateLocation("classpath:spid/sp-signing-cert.pem");
         spid.setSigningKeyLocation("classpath:spid/sp-signing-key.pem");

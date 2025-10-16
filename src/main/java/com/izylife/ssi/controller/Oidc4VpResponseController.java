@@ -8,11 +8,16 @@ import com.izylife.ssi.dto.VerifyPresentationRequest;
 import com.izylife.ssi.dto.VerifyPresentationResponse;
 import com.izylife.ssi.service.Oidc4VpRequestService;
 import com.izylife.ssi.service.Oidc4VpRequestService.AuthorizationSession;
+import com.izylife.ssi.service.OnboardingStateService;
 import com.izylife.ssi.service.VerificationService;
+import com.izylife.ssi.service.VerifierAuthorizationService;
+import com.izylife.ssi.service.VerifierAuthorizationService.AuthorizationCodeRecord;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.JWTParser;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.util.MultiValueMap;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,13 +25,15 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
 import java.util.Base64;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
+import java.net.URI;
 
 @RestController
 @RequestMapping(path = "/oidc4vp", produces = MediaType.APPLICATION_JSON_VALUE)
@@ -35,6 +42,8 @@ public class Oidc4VpResponseController {
     private final VerificationService verificationService;
     private final ObjectMapper objectMapper;
     private final Oidc4VpRequestService oidc4VpRequestService;
+    private final VerifierAuthorizationService verifierAuthorizationService;
+    private final OnboardingStateService onboardingStateService;
     private final String expectedDefinitionId;
     private final Set<String> requiredDescriptorIds;
 
@@ -42,22 +51,26 @@ public class Oidc4VpResponseController {
             VerificationService verificationService,
             AppProperties appProperties,
             ObjectMapper objectMapper,
-            Oidc4VpRequestService oidc4VpRequestService
+            Oidc4VpRequestService oidc4VpRequestService,
+            VerifierAuthorizationService verifierAuthorizationService,
+            OnboardingStateService onboardingStateService
     ) {
         this.verificationService = verificationService;
         this.objectMapper = objectMapper;
         this.oidc4VpRequestService = oidc4VpRequestService;
+        this.verifierAuthorizationService = verifierAuthorizationService;
+        this.onboardingStateService = onboardingStateService;
         this.expectedDefinitionId = appProperties.getVerifier().getPresentationDefinitionId();
         this.requiredDescriptorIds = oidc4VpRequestService.getInputDescriptorIds();
     }
 
     @PostMapping(path = "/responses", consumes = MediaType.APPLICATION_FORM_URLENCODED_VALUE)
-    public VerifyPresentationResponse handleFormSubmission(@RequestParam MultiValueMap<String, String> formData) {
+    public ResponseEntity<?> handleFormSubmission(@RequestParam MultiValueMap<String, String> formData) {
         Oidc4VpSubmission submission = fromForm(formData);
         return processSubmission(submission);
     }
 
-    private VerifyPresentationResponse processSubmission(Oidc4VpSubmission submission) {
+    private ResponseEntity<?> processSubmission(Oidc4VpSubmission submission) {
         if (submission == null) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing OIDC4VP submission body");
         }
@@ -97,8 +110,39 @@ public class Oidc4VpResponseController {
         request.setState(state);
 
         VerifyPresentationResponse response = verificationService.verifyPresentation(request);
+
+        if (!response.isValid()) {
+            return ResponseEntity.ok(response);
+        }
+
+        if (!StringUtils.hasText(session.redirectUri())) {
+            oidc4VpRequestService.consumeSession(state);
+            return ResponseEntity.ok(response);
+        }
+
+        AuthorizationCodeRecord record = verifierAuthorizationService.issueCode(session, response);
         oidc4VpRequestService.consumeSession(state);
-        return response;
+        onboardingStateService.publishAuthorizationCode(record.code(), record.state(), record.redirectUri());
+        URI redirect = buildRedirectUri(record);
+        if (redirect != null) {
+            return ResponseEntity.status(HttpStatus.FOUND)
+                    .location(redirect)
+                    .build();
+        }
+
+        return ResponseEntity.ok(Map.of("status", "ok"));
+    }
+
+    private URI buildRedirectUri(AuthorizationCodeRecord record) {
+        if (!StringUtils.hasText(record.redirectUri())) {
+            return null;
+        }
+        UriComponentsBuilder builder = UriComponentsBuilder.fromUriString(record.redirectUri())
+                .queryParam("code", record.code());
+        if (StringUtils.hasText(record.state())) {
+            builder.queryParam("state", record.state());
+        }
+        return builder.build(true).toUri();
     }
 
     private void validateDescriptorDefinition(JsonNode presentationSubmission) {

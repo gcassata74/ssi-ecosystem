@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -43,6 +44,9 @@ public class OnboardingStateService {
     private final ObjectMapper objectMapper;
     private final AtomicReference<CredentialOfferContext> activeCredentialOffer = new AtomicReference<>();
     private final AtomicReference<Oidc4VpRequestService.AuthorizationRequest> currentAuthorization = new AtomicReference<>();
+    private final AtomicReference<VerifierClientContext> clientContext = new AtomicReference<>(
+            new VerifierClientContext(null, null, null)
+    );
     private final SimpMessagingTemplate messagingTemplate;
     private final AtomicReference<CredentialPreviewDto> lastVerifiedCredential = new AtomicReference<>();
 
@@ -58,7 +62,7 @@ public class OnboardingStateService {
         this.oidc4vciService = oidc4vciService;
         this.objectMapper = objectMapper;
         this.messagingTemplate = messagingTemplate;
-        refreshAuthorizationRequest();
+        refreshAuthorizationRequest(clientContext.get());
     }
 
     public OnboardingStatusResponse getCurrentStatus() {
@@ -76,6 +80,27 @@ public class OnboardingStateService {
             return buildVerifierQr();
         }
         return buildIssuerState();
+    }
+
+    public void updateClientContext(String clientId, String redirectUri, String state) {
+        VerifierClientContext updated = clientContext.updateAndGet(existing -> {
+            String resolvedClientId = isNotBlank(clientId) ? clientId : existing.clientId();
+            String resolvedRedirect = isNotBlank(redirectUri) ? redirectUri : existing.redirectUri();
+            String resolvedState = isNotBlank(state) ? state : existing.authorizationState();
+            if (Objects.equals(resolvedClientId, existing.clientId())
+                    && Objects.equals(resolvedRedirect, existing.redirectUri())
+                    && Objects.equals(resolvedState, existing.authorizationState())) {
+                return existing;
+            }
+            return new VerifierClientContext(resolvedClientId, resolvedRedirect, resolvedState);
+        });
+
+        if (updated != null && isNotBlank(updated.redirectUri())) {
+            Oidc4VpRequestService.AuthorizationRequest authorization = currentAuthorization.get();
+            if (authorization == null || !Objects.equals(updated.redirectUri(), authorization.redirectUri())) {
+                refreshAuthorizationRequest(updated);
+            }
+        }
     }
 
     public OnboardingQrResponse getIssuerQr() {
@@ -110,6 +135,22 @@ public class OnboardingStateService {
         messagingTemplate.convertAndSend(ONBOARDING_TOPIC, status);
     }
 
+    public void publishAuthorizationCode(String code, String state, String redirectUri) {
+        OnboardingQrResponse verifier = buildVerifierSnapshot();
+        OnboardingQrResponse issuer = buildIssuerState();
+        OnboardingStatusResponse status = new OnboardingStatusResponse(
+                currentStep.get().name(),
+                issuerFlowState.get().name(),
+                verifier,
+                issuer
+        );
+        status.setAuthorizationCode(code);
+        status.setAuthorizationState(state);
+        status.setAuthorizationRedirectUri(redirectUri);
+        issuerFlowState.set(IssuerFlowState.IDLE);
+        messagingTemplate.convertAndSend(ONBOARDING_TOPIC, status);
+    }
+
     public void promptIssuerEnrollment() {
         AppProperties.SpidProperties spidProperties = appProperties.getSpid();
         lastVerifiedCredential.set(null);
@@ -136,7 +177,7 @@ public class OnboardingStateService {
     }
 
     public void showVerifierQr() {
-        Oidc4VpRequestService.AuthorizationRequest authorization = refreshAuthorizationRequest();
+        Oidc4VpRequestService.AuthorizationRequest authorization = refreshAuthorizationRequest(clientContext.get());
         currentStep.set(OnboardingStep.VP_REQUEST);
         OnboardingQrResponse verifierQr = buildVerifierQr(authorization);
         publishUpdate(OnboardingStep.VP_REQUEST, verifierQr);
@@ -282,23 +323,28 @@ public class OnboardingStateService {
     private OnboardingQrResponse buildVerifierSnapshot() {
         Oidc4VpRequestService.AuthorizationRequest authorization = currentAuthorization.get();
         if (authorization == null) {
-            authorization = refreshAuthorizationRequest();
+            authorization = refreshAuthorizationRequest(clientContext.get());
         }
         return buildVerifierQr(authorization);
     }
 
     private AuthorizationState ensureActiveAuthorization() {
+        VerifierClientContext context = clientContext.get();
         Oidc4VpRequestService.AuthorizationRequest authorization = currentAuthorization.get();
         boolean refreshed = false;
         if (authorization == null || oidc4VpRequestService.resolveSession(authorization.state()).isEmpty()) {
-            authorization = refreshAuthorizationRequest();
+            authorization = refreshAuthorizationRequest(context);
             refreshed = true;
         }
         return new AuthorizationState(authorization, refreshed);
     }
 
-    private Oidc4VpRequestService.AuthorizationRequest refreshAuthorizationRequest() {
-        Oidc4VpRequestService.AuthorizationRequest authorization = oidc4VpRequestService.createAuthorizationRequest();
+    private Oidc4VpRequestService.AuthorizationRequest refreshAuthorizationRequest(VerifierClientContext context) {
+        Oidc4VpRequestService.AuthorizationRequest authorization = oidc4VpRequestService.createAuthorizationRequest(
+                context.redirectUri(),
+                context.clientId(),
+                context.authorizationState()
+        );
         currentAuthorization.set(authorization);
         return authorization;
     }
@@ -360,10 +406,6 @@ public class OnboardingStateService {
         return value.startsWith("http://") || value.startsWith("https://");
     }
 
-    private boolean isNotBlank(String value) {
-        return value != null && !value.isBlank();
-    }
-
     private CredentialOfferContext ensureCredentialOfferContext() {
         CredentialOfferContext context = activeCredentialOffer.get();
         if (context != null && oidc4vciService.findOfferById(context.offer().offerId()).isPresent()) {
@@ -406,10 +448,17 @@ public class OnboardingStateService {
                 .orElse("http://localhost:9090");
     }
 
+    private boolean isNotBlank(String value) {
+        return value != null && !value.isBlank();
+    }
+
     private record CredentialOfferContext(Oidc4vciService.CredentialOfferRecord offer,
                                           Oidc4vciService.StaffProfile profile,
                                           String helperText,
                                           String qrPayload) {
+    }
+
+    private record VerifierClientContext(String clientId, String redirectUri, String authorizationState) {
     }
 
     private record AuthorizationState(Oidc4VpRequestService.AuthorizationRequest authorization, boolean refreshed) {

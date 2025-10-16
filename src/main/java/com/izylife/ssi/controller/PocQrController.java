@@ -22,7 +22,7 @@ public class PocQrController {
 
     @GetMapping("/vp-request")
     public PocQrResponse getTestVpRequestQr() {
-        Oidc4VpRequestService.AuthorizationRequest authorizationRequest = oidc4VpRequestService.createAuthorizationRequest();
+        Oidc4VpRequestService.AuthorizationRequest authorizationRequest = oidc4VpRequestService.createAuthorizationRequest(null, null, null);
 
         String payload = authorizationRequest.qrPayload();
 

@@ -68,7 +68,7 @@ public class Oidc4VpRequestService {
         this.inputDescriptorIds = Collections.unmodifiableSet(extractInputDescriptorIds(this.presentationDefinition));
     }
 
-    public AuthorizationRequest createAuthorizationRequest() {
+    public AuthorizationRequest createAuthorizationRequest(String redirectUri, String portalClientId, String authorizationState) {
         String state = UUID.randomUUID().toString();
         String nonce = "nonce-" + state.substring(0, 8);
         Instant now = Instant.now();
@@ -94,7 +94,7 @@ public class Oidc4VpRequestService {
                 expiresAt
         );
 
-        sessions.put(state, new AuthorizationSession(state, nonce, requestObject, expiresAt));
+        sessions.put(state, new AuthorizationSession(state, nonce, requestObject, expiresAt, redirectUri, portalClientId, authorizationState));
 
         Map<String, String> params = new LinkedHashMap<>();
         params.put("client_id", clientId);
@@ -109,7 +109,7 @@ public class Oidc4VpRequestService {
 
         String qrPayload = "openid://?" + buildQuery(params);
 
-        return new AuthorizationRequest(state, nonce, requestUri, requestObject, qrPayload, presentationDefinitionId, presentationDefinitionUri, clientId);
+        return new AuthorizationRequest(state, nonce, requestUri, requestObject, qrPayload, presentationDefinitionId, presentationDefinitionUri, clientId, redirectUri, portalClientId, authorizationState);
     }
 
     public Optional<String> getRequestObject(String requestId) {
@@ -292,11 +292,20 @@ public class Oidc4VpRequestService {
             String qrPayload,
             String presentationDefinitionId,
             String presentationDefinitionUri,
-            String clientId
+            String clientId,
+            String redirectUri,
+            String portalClientId,
+            String authorizationState
     ) {
     }
 
-    public record AuthorizationSession(String state, String nonce, String requestObject, Instant expiresAt) {
+    public record AuthorizationSession(String state,
+                                       String nonce,
+                                       String requestObject,
+                                       Instant expiresAt,
+                                       String redirectUri,
+                                       String portalClientId,
+                                       String authorizationState) {
         public boolean isExpired() {
             return Instant.now().isAfter(expiresAt);
         }
