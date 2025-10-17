@@ -1,11 +1,24 @@
 # @ssi/issuer-auth-client
 
-A lightweight TypeScript client that streamlines authentication against the SSI Issuer/Verifier authorization server. It provides a framework-agnostic core SDK plus Angular-specific helpers inspired by the ergonomics of `keycloak-angular`.
+A lightweight TypeScript SDK that streamlines authentication against the Izylife SSI issuer/verifier authorization server. The package exposes a framework-agnostic core client and optional Angular helpers that mirror the ergonomics of `keycloak-angular`.
 
-- 🔐 Handles OAuth2/OIDC authorization-code flow with PKCE.
-- 🔄 Manages token persistence, refresh, and broadcast of authentication events.
-- 🅰️ Ships with Angular providers, services, and an HTTP interceptor for easy drop-in usage from `main.ts`.
-- 📦 Ready to publish on npm with generated type declarations and dual ESM/CJS bundles.
+## Features
+
+- 🔐 Handles OAuth2/OIDC authorization-code flows with PKCE.
+- 🔄 Manages token storage, refresh, and lifecycle events.
+- 🧩 Provides a `fetchWithAuth` helper for standards-based API calls.
+- 🅰️ Ships Angular providers, services, and an HTTP interceptor for quick drop-in integration.
+- 📦 Builds dual ESM/CJS bundles with type declarations—ready for npm publishing.
+
+## Package Structure
+
+```
+dist/index.js        # Core framework-agnostic client (ESM)
+dist/index.cjs       # Core client (CommonJS)
+dist/angular/*       # Angular service, providers, and HTTP interceptor wrappers
+```
+
+The public exports are declared in `package.json` so bundlers can tree-shake unused helpers.
 
 ## Installation
 
@@ -13,12 +26,12 @@ A lightweight TypeScript client that streamlines authentication against the SSI 
 npm install @ssi/issuer-auth-client
 ```
 
-Peer dependencies (installed automatically by Angular CLI) must be available in the host application:
+Peer dependencies are optional unless you use the Angular integration:
 
-- `@angular/core` and `@angular/common` (optional, only required for Angular integration).
-- `rxjs` (optional, only required when using the Angular service/interceptor).
+- `@angular/core` and `@angular/common`
+- `rxjs`
 
-## Quick Start (framework-agnostic)
+## Quick Start (Core SDK)
 
 ```ts
 import { SsiAuthClient } from '@ssi/issuer-auth-client';
@@ -39,9 +52,11 @@ if (!client.isAuthenticated()) {
 const token = await client.getAccessToken();
 ```
 
+Use `client.fetchWithAuth()` for convenience when calling issuer/verifier APIs.
+
 ## Angular Integration
 
-1. **Bootstrap with environment providers** (Angular v16+):
+Register the SDK with Angular environment providers (Angular 16+):
 
 ```ts
 // main.ts
@@ -71,7 +86,7 @@ bootstrapApplication(AppComponent, {
 });
 ```
 
-2. **Consume the service anywhere**:
+Inject the service anywhere in your component tree:
 
 ```ts
 import { Component } from '@angular/core';
@@ -103,45 +118,28 @@ export class AuthStatusComponent {
 }
 ```
 
-The optional HTTP interceptor automatically annotates outgoing `HttpClient` requests with a `Bearer` token and triggers a silent refresh when the current token is within the configurable `refreshSkewMs` window. Override the header name by setting `interceptorHeader` inside `provideSsiAuth` options.
+Enabling the optional HTTP interceptor annotates outgoing `HttpClient` requests with a `Bearer` token and triggers silent refreshes when the token is close to expiring.
 
 ## API Highlights
 
 ### `SsiAuthClient`
 
-- `init(options?: SsiInitOptions)` – restores sessions, handles redirect callbacks, and optionally enforces `login-required` flow.
-- `login(options?: LoginOptions)` – starts the authorization-code flow (returns the authorization URL).
-- `logout(options?: LogoutOptions)` – clears state and triggers the end-session endpoint.
-- `getAccessToken()` / `getIdToken()` – fetches the latest tokens, refreshing when configured.
-- `fetchWithAuth(input, init?)` – wraps `fetch` with automatic `Authorization` headers.
-- `loadUserInfo()` – convenience helper for the UserInfo endpoint.
-- `on(event, listener)` – subscribe to lifecycle events: `authenticated`, `token_refreshed`, `token_expired`, `logout`, `error`.
+- `init(options?: SsiInitOptions)` – Restores sessions, handles redirect callbacks, and supports `login-required` flows.
+- `login(options?: LoginOptions)` / `logout(options?: LogoutOptions)` – Start or end the authorization session.
+- `getAccessToken()` / `getIdToken()` – Retrieve the latest tokens with automatic refresh when enabled.
+- `fetchWithAuth(input, init?)` – Lightweight wrapper around `fetch` that injects the `Authorization` header.
+- `loadUserInfo()` – Convenience helper for the UserInfo endpoint.
+- `on(event, listener)` – Subscribe to lifecycle events: `authenticated`, `token_refreshed`, `token_expired`, `logout`, `error`.
 
-### Angular helpers
+### Angular Helpers
 
-- `provideSsiAuth(options)` – registers the client, initializer, service, and (optionally) the HTTP interceptor.
-- `SsiAuthService`
-  - `authStatus$` / `tokens$` – observables of the authentication state.
-  - `initialize()` – invoked automatically during bootstrap via `APP_INITIALIZER`.
-  - `login()`, `logout()`, `getAccessToken()`, `fetchWithAuth()` – thin wrappers over the core client.
-- `SsiAuthInterceptor` – adds tokens to `HttpClient` requests when `includeHttpInterceptor` is set.
-
-## Configuration Reference
-
-| Option | Description |
-| ------ | ----------- |
-| `baseUrl` | Base URL of the authorization server (e.g., `https://issuer.example.com`). |
-| `clientId` | OAuth2 client identifier registered with the issuer/verifier portal. |
-| `redirectUri` | Callback URL configured in the authorization server. |
-| `postLogoutRedirectUri` | Optional post-logout redirect target. Defaults to `redirectUri`. |
-| `scopes` | Additional scopes requested during login. Defaults to `['openid', 'profile', 'email']`. |
-| `audience` | Custom audience parameter when supported by the server. |
-| `endpoints` | Override default endpoint paths (`authorization`, `token`, `userInfo`, `endSession`). |
-| `usePkce` | Enable/disable PKCE (defaults to `true`). |
-| `refreshTokens` | Attempt refresh-token grants when available (defaults to `true`). |
-| `refreshSkewMs` | Milliseconds before expiry to trigger an automatic refresh (defaults to `60000`). |
+- `provideSsiAuth(options)` – Registers the core client, initializer, service, and optional interceptor.
+- `SsiAuthService` – Surface observables (`authStatus$`, `tokens$`) and delegation methods (`login`, `logout`, `getAccessToken`, `fetchWithAuth`).
+- `SsiAuthInterceptor` – Adds tokens to `HttpClient` calls when `includeHttpInterceptor` is enabled.
 
 ## Development
+
+Install dependencies and run the quality gates before publishing:
 
 ```bash
 npm install
@@ -149,8 +147,25 @@ npm run lint
 npm run build
 ```
 
-The build pipeline produces CommonJS + ESM bundles alongside type declarations inside the `dist/` directory. Before publishing to npm, bump the version and run `npm publish --access public` (or the workflow that fits your release process).
+The `build` script invokes `tsup` to generate CommonJS and ES Module bundles plus type declarations under `dist/`.
 
-## License
+To test the package locally from another project, either use `npm link` or point to the generated tarball (`npm pack`) from your consumer's `package.json`.
 
-MIT
+## Publishing
+
+1. Update the version in `package.json` following semver.
+2. Run `npm run build` and validate the artefacts under `dist/`.
+3. Publish to npm (or your private registry):
+
+   ```bash
+   npm publish --access public
+   ```
+
+4. Tag the release in Git and notify downstream projects (e.g., `ssi-client-application/frontend`) to bump the dependency.
+
+## Troubleshooting
+
+- **Token refresh not happening:** ensure `refreshTokens: true` and `refreshSkewMs` are configured. Check developer tools for blocked third-party cookies if you rely on hidden iframes.
+- **Angular injector errors:** verify that you call `provideSsiAuth()` only once during bootstrap and that Angular peers (`@angular/core`, `@angular/common`, `rxjs`) satisfy the peer dependency ranges.
+
+Feel free to extend the SDK with additional framework bindings or expose more granular events as new requirements emerge.
