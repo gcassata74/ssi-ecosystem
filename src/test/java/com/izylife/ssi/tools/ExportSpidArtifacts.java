@@ -20,6 +20,7 @@ import java.security.PrivateKey;
 import java.security.Signature;
 import java.security.SignatureException;
 import java.util.Base64;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.zip.Deflater;
 
@@ -54,7 +55,7 @@ public final class ExportSpidArtifacts {
         SpidSamlConfiguration configuration = new SpidSamlConfiguration(store);
         RelyingPartyRegistrationRepository repository = configuration.relyingPartyRegistrationRepository(properties, new DefaultResourceLoader());
 
-        SpidMetadataController metadataController = new SpidMetadataController(properties, repository);
+        SpidMetadataController metadataController = new SpidMetadataController(properties, Optional.of(repository));
         ResponseEntity<String> metadataResponse = metadataController.metadata();
         if (!metadataResponse.getStatusCode().is2xxSuccessful() || metadataResponse.getBody() == null) {
             throw new IllegalStateException("Unable to generate SPID metadata: " + metadataResponse.getStatusCode());

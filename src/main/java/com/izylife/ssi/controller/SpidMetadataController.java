@@ -42,10 +42,10 @@ public class SpidMetadataController {
     private static final Logger LOGGER = LoggerFactory.getLogger(SpidMetadataController.class);
 
     private final AppProperties appProperties;
-    private final RelyingPartyRegistrationRepository relyingPartyRegistrationRepository;
+    private final Optional<RelyingPartyRegistrationRepository> relyingPartyRegistrationRepository;
 
     public SpidMetadataController(AppProperties appProperties,
-                                  RelyingPartyRegistrationRepository relyingPartyRegistrationRepository) {
+                                  Optional<RelyingPartyRegistrationRepository> relyingPartyRegistrationRepository) {
         this.appProperties = appProperties;
         this.relyingPartyRegistrationRepository = relyingPartyRegistrationRepository;
     }
@@ -57,8 +57,13 @@ public class SpidMetadataController {
             return ResponseEntity.notFound().build();
         }
 
+        RelyingPartyRegistrationRepository repository = relyingPartyRegistrationRepository.orElse(null);
+        if (repository == null) {
+            return ResponseEntity.notFound().build();
+        }
+
         String registrationId = spid.getRegistrationId();
-        RelyingPartyRegistration registration = relyingPartyRegistrationRepository.findByRegistrationId(registrationId);
+        RelyingPartyRegistration registration = repository.findByRegistrationId(registrationId);
         if (registration == null) {
             return ResponseEntity.notFound().build();
         }

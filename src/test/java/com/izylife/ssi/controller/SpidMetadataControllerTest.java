@@ -19,6 +19,7 @@ import org.w3c.dom.Document;
 
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.ByteArrayInputStream;
+import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -41,7 +42,7 @@ class SpidMetadataControllerTest {
         SpidAuthnRequestStore store = new SpidAuthnRequestStore(properties);
         SpidSamlConfiguration configuration = new SpidSamlConfiguration(store);
         RelyingPartyRegistrationRepository repository = configuration.relyingPartyRegistrationRepository(properties, new DefaultResourceLoader());
-        SpidMetadataController controller = new SpidMetadataController(properties, repository);
+        SpidMetadataController controller = new SpidMetadataController(properties, Optional.of(repository));
 
         ResponseEntity<String> response = controller.metadata();
         assertThat(response.getStatusCode().is2xxSuccessful()).isTrue();
