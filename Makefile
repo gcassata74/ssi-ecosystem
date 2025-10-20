@@ -33,10 +33,10 @@ run-angular-client:
 	cd frontend && npx kill-port 4200 || true && npm start
 
 run-spring-boot-server:
-	cd backend && MAVEN_OPTS="-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005" mvn spring-boot:run
-
-run-serveo:
-	ssh -R izylife:80:localhost:9090 serveo.net
+	APP_SPID_AUTHN_REQUEST_OUTPUT=/tmp/spid-authn-request.xml \
+	APP_SPID_ENABLED=true \
+	APP_VERIFIER_ENDPOINT=https://izylife-issuer.eu.ngrok.io \
+	mvn spring-boot:run
 
 export-spid-artifacts:
 	mvn -q -DskipTests -Dexec.classpathScope=test exec:java -Dexec.mainClass=com.izylife.ssi.tools.ExportSpidArtifacts
@@ -56,3 +56,4 @@ verify-spid-response:
 	mvn -q -Dexec.classpathScope=test exec:java \
 	  -Dexec.mainClass=com.izylife.ssi.tools.VerifySpidResponse \
 	  -Dexec.args="$(RESPONSE) $(METADATA)"
+
