@@ -43,10 +43,10 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/your-org/ssi-client-lib.git"
+    "url": "https://github.com/gcassata74/ssi-client-lib.git"
   },
   "bugs": {
-    "url": "https://github.com/your-org/ssi-client-lib/issues"
+    "url": "https://github.com/gcassata74/ssi-client-lib.git"
   },
   "author": "",
   "devDependencies": {
