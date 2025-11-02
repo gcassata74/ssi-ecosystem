@@ -23,7 +23,7 @@ The public exports are declared in `package.json` so bundlers can tree-shake unu
 ## Installation
 
 ```bash
-npm install @ssi/issuer-auth-client
+npm install '@izylife/ssi-auth-client'
 ```
 
 Peer dependencies are optional unless you use the Angular integration:
@@ -34,7 +34,7 @@ Peer dependencies are optional unless you use the Angular integration:
 ## Quick Start (Core SDK)
 
 ```ts
-import { SsiAuthClient } from '@ssi/issuer-auth-client';
+import { SsiAuthClient } from '@izylife/ssi-auth-client';
 
 const client = new SsiAuthClient({
   baseUrl: 'https://issuer.example.com',
@@ -63,7 +63,7 @@ Register the SDK with Angular environment providers (Angular 16+):
 import { bootstrapApplication } from '@angular/platform-browser';
 import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
 import { AppComponent } from './app/app.component';
-import { provideSsiAuth } from '@ssi/issuer-auth-client/angular';
+import { provideSsiAuth } from '@izylife/ssi-auth-client/angular';
 
 bootstrapApplication(AppComponent, {
   providers: [
@@ -91,7 +91,7 @@ Inject the service anywhere in your component tree:
 ```ts
 import { Component } from '@angular/core';
 import { AsyncPipe } from '@angular/common';
-import { SsiAuthService } from '@ssi/issuer-auth-client/angular';
+import { SsiAuthService } from '@izylife/ssi-auth-client/angular';
 
 @Component({
   selector: 'app-auth-status',
