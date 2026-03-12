@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SSI Payment Gateway Demo</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; background: #f5f5f5; }
+        h1 { color: #0f172a; }
+        form { background: #fff; padding: 1.5rem; border-radius: 8px; box-shadow: 0 2px 12px rgba(15,23,42,0.15); max-width: 480px; }
+        label { display: block; margin-bottom: 0.35rem; font-weight: bold; }
+        input, textarea { width: 100%; padding: 0.65rem; margin-bottom: 1rem; border: 1px solid #cbd5f5; border-radius: 6px; font-size: 1rem; }
+        button { background: #2563eb; color: white; border: none; padding: 0.75rem 1.5rem; font-size: 1rem; border-radius: 6px; cursor: pointer; }
+        button:disabled { background: #94a3b8; cursor: not-allowed; }
+        pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow: auto; max-width: 640px; }
+        .note { margin-top: 1rem; }
+        a { color: #2563eb; }
+    </style>
+</head>
+<body>
+<h1>SSI Payment Gateway Demo</h1>
+<p>Compile the form and press <strong>Start SSI Payment</strong>. We will create a payment on the gateway,
+    redirect you to the issuer/verifier portal for SSI authentication, then bring you back to <code>result.html</code>.</p>
+
+<form id="payment-form">
+    <label for="amount">Amount (EUR)</label>
+    <input type="number" id="amount" name="amount" value="19.90" step="0.10" min="0.10" required>
+
+    <label for="description">Description</label>
+    <textarea id="description" name="description">Coffee beans + reusable cup</textarea>
+
+    <button type="submit">Start SSI Payment</button>
+</form>
+
+<div class="note">
+    <p>Logs</p>
+    <pre id="log">Waiting for form submission…</pre>
+</div>
+
+<script>
+    const form = document.getElementById('payment-form');
+    const logRef = document.getElementById('log');
+
+    const updateLog = (message) => {
+        const now = new Date().toISOString();
+        logRef.textContent = `[${now}] ${message}\n` + logRef.textContent;
+    };
+
+    form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+        form.querySelector('button').disabled = true;
+        updateLog('Submitting payment request to gateway…');
+
+        const payload = {
+            amount: Number(form.amount.value),
+            currency: 'EUR',
+            description: form.description.value,
+            returnUrl: `${window.location.origin}/demo/result.html`
+        };
+
+        try {
+            const response = await fetch('/api/payments', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                updateLog(`Payment request failed: ${errorText}`);
+                form.querySelector('button').disabled = false;
+                return;
+            }
+
+            const data = await response.json();
+            updateLog(`Payment ${data.paymentId} created. Redirecting to issuer portal…`);
+            window.location.href = data.authorizationUrl;
+        } catch (err) {
+            console.error(err);
+            updateLog(`Unexpected error: ${err.message}`);
+            form.querySelector('button').disabled = false;
+        }
+    });
+</script>
+</body>
+</html>

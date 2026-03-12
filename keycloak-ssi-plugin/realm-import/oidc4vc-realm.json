@@ -1,0 +1,22 @@
+{
+  "realm": "oidc4vc-demo",
+  "enabled": true,
+  "displayName": "OIDC4VC Demo Realm",
+  "displayNameHtml": "<span>OIDC4VC Demo Realm</span>",
+  "internationalizationEnabled": false,
+  "loginTheme": "keycloak",
+  "adminTheme": "oidc4vc",
+  "attributes": {
+    "userProfileEnabled": "false"
+  },
+  "users": [],
+  "clients": [],
+  "roles": {
+    "realm": [],
+    "client": {}
+  },
+  "groups": [],
+  "clientScopes": [],
+  "defaultDefaultClientScopes": [],
+  "defaultOptionalClientScopes": []
+}
