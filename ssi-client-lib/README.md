@@ -2,6 +2,10 @@
 
 A lightweight TypeScript SDK that streamlines authentication against the Izylife SSI issuer/verifier authorization server. The package exposes a framework-agnostic core client and optional Angular helpers that mirror the ergonomics of `keycloak-angular`.
 
+## License
+
+This package is licensed under `AGPL-3.0-only`.
+
 ## Features
 
 - 🔐 Handles OAuth2/OIDC authorization-code flows with PKCE.
