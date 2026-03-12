@@ -1,0 +1,84 @@
+server:
+  port: 9090
+
+app:
+  issuer:
+    organization-name: Izylife Public Authority
+    endpoint: ${APP_ISSUER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}
+    credential-issuer-id: ${APP_ISSUER_CREDENTIAL_ISSUER_ID:${APP_ISSUER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}}
+    credential-offer-uri: ${APP_ISSUER_CREDENTIAL_OFFER_URI:}
+    signing-key:
+      kid: demo-issuer-key
+      kty: EC
+      crv: P-256
+      x: yUkiMuYe-e1Kf-bJ0zPP3e7MUqhdN8-E-u9jjPywPjo
+      y: WxCnkmraRMwnb2-GymcA-TP-CrEv3sLsLlS7iWhQC4c
+      d: G-78W0e4pV0lTLuHNc8X96a_j3BIbjaa2avYeghwcAU
+      alg: ES256
+  verifier:
+    endpoint: ${APP_VERIFIER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}
+    challenge: demo-challenge
+    qr-payload: "ssi://vp-request?audience=IzylifeVerifier&challenge=demo-challenge"
+    client-id: ${APP_VERIFIER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}/oidc4vp/responses
+    client-id-scheme: redirect_uri
+    response-mode: direct_post
+    request-audience: https://self-issued.me/v2
+    presentation-definition-id: staff-credential
+    signing-key:
+      kid: demo-verifier-key
+      kty: EC
+      crv: P-256
+      x: hVx-X9SsBBdC7TEzEo0mr5JvDifiW8ukP-dtmzYn1gs
+      y: 0bYC51lu9R37eLSgtdK9gQLxjYMNgNcHapcq8xZ9YjI
+      d: pSxjopWQyhwMpCpJ9OJ4uRi41-0usfuzEHhLul1PccE
+      alg: ES256
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+      - http://localhost:8080
+      - https://staff-credentials.com
+      - https://wallet.staff-credentials.com
+      - https://*.staff-credentials.com
+      - https://*.ngrok-free.app
+      - https://*.ngrok-free.dev
+      - https://*.ngrok.io
+      - https://demo.spid.gov.it
+    allow-credentials: false
+  spid:
+    enabled: ${APP_SPID_ENABLED:false}
+    registration-id: ${APP_SPID_REGISTRATION_ID:spid}
+    entity-id: ${APP_SPID_ENTITY_ID:${APP_VERIFIER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}/spid}
+    assertion-consumer-service: ${APP_SPID_ASSERTION_CONSUMER_SERVICE:${APP_VERIFIER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}/login/saml2/sso/spid}
+    single-sign-on-service-location: ${APP_SPID_SINGLE_SIGN_ON_SERVICE_LOCATION:}
+    single-logout-service-location: ${APP_SPID_SINGLE_LOGOUT_SERVICE_LOCATION:${APP_VERIFIER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}/saml2/logout}
+    signing-certificate-location: ${APP_SPID_SIGNING_CERTIFICATE_LOCATION:classpath:spid/sp-signing-cert.pem}
+    signing-key-location: ${APP_SPID_SIGNING_KEY_LOCATION:classpath:spid/sp-signing-key.pem}
+    identity-provider-metadata-location: ${APP_SPID_IDP_METADATA_LOCATION:https://demo.spid.gov.it/metadata.xml}
+    login-path: ${APP_SPID_LOGIN_PATH:/saml2/authenticate/spid}
+    post-login-redirect: ${APP_SPID_POST_LOGIN_REDIRECT:/issuer}
+    purpose: ${APP_SPID_PURPOSE:Accesso area riservata Izylife}
+    requested-attributes:
+      - name: fiscalNumber
+        friendly-name: fiscalNumber
+        required: true
+      - name: name
+        friendly-name: name
+        required: true
+      - name: familyName
+        friendly-name: familyName
+        required: true
+      - name: email
+        friendly-name: email
+spring:
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/ssi-issuer-verifier}
+      database: ${SPRING_DATA_MONGODB_DATABASE:ssi-issuer-verifier}
+  mvc:
+    static-path-pattern: /**
+
+logging:
+  level:
+    com.izylife.ssi: DEBUG
+    org.springframework.security.saml2: DEBUG
+    org.opensaml: DEBUG

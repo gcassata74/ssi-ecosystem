@@ -1,0 +1,9 @@
+{% extends "base.xml" %}
+{% block SubjectConfirmation %}
+            <saml:SubjectConfirmation>
+                <saml:SubjectConfirmationData
+                    InResponseTo="{{AuthnRequestID}}"
+                    NotOnOrAfter="{{NotOnOrAfter}}"
+                    Recipient="{{AssertionConsumerURL}}" />
+            </saml:SubjectConfirmation>
+{% endblock SubjectConfirmation %}

@@ -1,0 +1,15 @@
+{
+  "/api": {
+    "target": "http://localhost:9090",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug"
+  },
+  "/ws": {
+    "target": "http://localhost:9090",
+    "secure": false,
+    "changeOrigin": true,
+    "logLevel": "debug",
+    "ws": true
+  }
+}
