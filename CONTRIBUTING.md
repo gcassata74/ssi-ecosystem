@@ -53,9 +53,13 @@ controls on the hosting platform to enforce it operationally.
 
 - Do not push directly to the main protected branch.
 - Use pull requests for all normal code changes.
+- Request review from `@gcassata74` on every pull request.
+- A change must not be merged without 1 approval from `@gcassata74`.
 - Keep pull requests focused on one topic.
 - Describe what changed, why it changed, and how it was verified.
 - Call out migrations, config changes, and breaking behavior explicitly.
+- The repository owner must enable GitHub branch protection on `main` for this
+  to be enforced. See `.github/BRANCH_PROTECTION.md`.
 
 ## Quality Expectations
 
@@ -71,6 +75,14 @@ controls on the hosting platform to enforce it operationally.
 ## Testing
 
 Run the checks that match the modules you touched.
+
+The repository CI intentionally stays minimal. The required baseline is:
+
+- `ssi-client-lib`: install, type-check, build
+- `ssi-client-application/backend`: `mvn test`
+
+Those checks are the ones intended to remain required and green for routine
+changes unless the project owner deliberately raises the bar.
 
 Examples:
 
