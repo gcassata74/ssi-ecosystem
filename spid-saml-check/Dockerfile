@@ -22,23 +22,15 @@ LABEL   org.opencontainers.image.authors="Michele D'Amico, michele.damico@agid.g
         org.opencontainers.image.base.name="italia/spid-saml-check"
 
 # Update and install utilities
-RUN apt-get update && apt-get install -y \
-        wget \
-        curl \
-        unzip \
-        libxml2-utils \
-        libxml2-dev \
-        libxmlsec1-dev \
-        libxmlsec1-openssl \
-        libffi-dev \
-        xmlsec1 \
-        openssl \
-        python3 \
-        python3-pip \
-        libffi-dev \
-        python3-virtualenv \
-        build-essential  \
-        python3-dev cargo
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates curl wget unzip git \
+    libxml2-utils libxml2-dev \
+    libxmlsec1-dev libxmlsec1-openssl xmlsec1 \
+    libffi-dev openssl \
+    python3 python3-pip python3-venv python3-dev \
+    build-essential pkg-config \
+ && rm -rf /var/lib/apt/lists/*
+
 
 RUN pip3 install setuptools_rust cryptography
 

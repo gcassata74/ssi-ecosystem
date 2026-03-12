@@ -1,0 +1,177 @@
+<main class="admin" *ngIf="currentUser; else loadingState">
+  <header class="admin__header">
+    <div>
+      <h1>Izylife Admin Console</h1>
+      <p class="admin__subtitle">Realm: {{ currentUser?.realm }}</p>
+    </div>
+    <button type="button" (click)="logout()">Sign out</button>
+  </header>
+
+  <section class="admin__alerts">
+    <p *ngIf="notification" class="admin__notice">{{ notification }}</p>
+    <p *ngIf="error" class="admin__error">{{ error }}</p>
+  </section>
+
+  <div class="admin__layout">
+    <aside class="panel panel--tenants">
+      <h2>Tenants</h2>
+      <p class="panel__helper">Each tenant behaves like a Keycloak realm.</p>
+
+      <ul class="tenant-list" *ngIf="tenants.length; else emptyTenants">
+        <li *ngFor="let tenant of tenants" [class.active]="tenant.id === selectedTenant?.id">
+          <button type="button" (click)="selectTenant(tenant)">
+            <span class="tenant-list__name">{{ tenant.name }}</span>
+            <span class="tenant-list__email">{{ tenant.contactEmail }}</span>
+          </button>
+        </li>
+      </ul>
+
+      <ng-template #emptyTenants>
+        <p class="panel__empty">No tenants yet. Create one below.</p>
+      </ng-template>
+
+      <form [formGroup]="tenantForm" (ngSubmit)="createTenant()" class="create-form" novalidate>
+        <h3>Create tenant</h3>
+        <label>
+          <span>Name</span>
+          <input type="text" formControlName="name" autocomplete="off">
+        </label>
+        <label>
+          <span>Contact email</span>
+          <input type="email" formControlName="contactEmail" autocomplete="off">
+        </label>
+        <label>
+          <span>Description</span>
+          <textarea rows="2" formControlName="description"></textarea>
+        </label>
+        <button type="submit">Create tenant</button>
+      </form>
+    </aside>
+
+    <section class="panel panel--clients" *ngIf="selectedTenant; else noTenantSelected">
+      <header class="panel__header">
+        <div>
+          <h2>Clients</h2>
+          <p class="panel__helper">Manage OIDC clients inside tenant <strong>{{ selectedTenant?.name }}</strong>.</p>
+        </div>
+        <button *ngIf="selectedClient" type="button" class="panel__action" (click)="rotateClientSecret()">
+          Rotate secret
+        </button>
+      </header>
+
+      <div class="client-grid" *ngIf="clients.length; else emptyClients">
+        <article
+          class="client-card"
+          *ngFor="let client of clients"
+          [class.active]="client.id === selectedClient?.id"
+        >
+          <header>
+            <h3>{{ client.clientId }}</h3>
+            <p>{{ client.name }}</p>
+          </header>
+          <p class="client-card__meta" *ngIf="client.redirectUris.length">
+            <strong>Redirect URIs</strong>
+            <span>{{ client.redirectUris.join(', ') }}</span>
+          </p>
+          <footer>
+            <button type="button" class="link" (click)="selectClient(client)">Select</button>
+            <button type="button" class="link link--danger" (click)="deleteClient(client)">Delete</button>
+          </footer>
+        </article>
+      </div>
+
+      <ng-template #emptyClients>
+        <p class="panel__empty">No clients for this tenant yet.</p>
+      </ng-template>
+
+      <form [formGroup]="clientForm" (ngSubmit)="createClient()" class="create-form" novalidate>
+        <h3>Create client</h3>
+        <label>
+          <span>Client ID</span>
+          <input type="text" formControlName="clientId" autocomplete="off">
+        </label>
+        <label>
+          <span>Name</span>
+          <input type="text" formControlName="name" autocomplete="off">
+        </label>
+        <label>
+          <span>Description</span>
+          <textarea rows="2" formControlName="description"></textarea>
+        </label>
+        <label>
+          <span>Redirect URIs (comma or newline separated)</span>
+          <textarea rows="3" formControlName="redirectUris"></textarea>
+        </label>
+        <button type="submit">Create client</button>
+      </form>
+
+      <p *ngIf="clientSecret" class="secret-callout">
+        New client secret<br>
+        <code>{{ clientSecret.clientSecret }}</code>
+      </p>
+    </section>
+
+    <ng-template #noTenantSelected>
+      <section class="panel panel--clients">
+        <h2>Clients</h2>
+        <p class="panel__empty">Select a tenant to manage clients.</p>
+      </section>
+    </ng-template>
+
+    <section class="panel panel--definitions" *ngIf="selectedClient; else noClientSelected">
+      <header class="panel__header">
+        <div>
+          <h2>Presentation definitions</h2>
+          <p class="panel__helper">Templates bound to client <strong>{{ selectedClient?.clientId }}</strong>.</p>
+        </div>
+        <button type="button" class="panel__action" (click)="openCreateDefinition()">New definition</button>
+      </header>
+
+      <div *ngIf="definitions.length; else emptyDefinitions" class="definition-list">
+        <article *ngFor="let definition of definitions" class="definition-card">
+          <header>
+            <h3>{{ definition.definitionId }}</h3>
+            <p>{{ definition.name || 'Untitled definition' }}</p>
+          </header>
+          <p class="definition-card__purpose" *ngIf="definition.description">{{ definition.description }}</p>
+          <footer>
+            <button type="button" class="link" (click)="openEditDefinition(definition)">Edit</button>
+            <button type="button" class="link link--danger" (click)="deleteDefinition(definition)">Delete</button>
+          </footer>
+        </article>
+      </div>
+
+      <ng-template #emptyDefinitions>
+        <p class="panel__empty">No presentation definitions configured for this client.</p>
+      </ng-template>
+    </section>
+
+    <ng-template #noClientSelected>
+      <section class="panel panel--definitions">
+        <h2>Presentation definitions</h2>
+        <p class="panel__empty">Select a client to manage presentation definitions.</p>
+      </section>
+    </ng-template>
+  </div>
+
+  <section class="definition-editor" *ngIf="definitionEditorOpen">
+    <div class="definition-editor__dialog">
+      <header>
+        <h2>{{ definitionMode === 'create' ? 'Create presentation definition' : 'Edit presentation definition' }}</h2>
+        <button type="button" class="link" (click)="closeDefinitionEditor()">Close</button>
+      </header>
+      <app-presentation-definition-builder></app-presentation-definition-builder>
+      <footer>
+        <button type="button" class="panel__action" [disabled]="definitionSaving" (click)="saveDefinition()">
+          {{ definitionSaving ? 'Saving…' : 'Save definition' }}
+        </button>
+      </footer>
+    </div>
+  </section>
+</main>
+
+<ng-template #loadingState>
+  <div class="admin__loading">
+    <p>Loading admin console…</p>
+  </div>
+</ng-template>

@@ -1,0 +1,167 @@
+<main class="builder">
+  <header class="builder__header">
+    <h1>Presentation Definition Builder</h1>
+    <p>
+      Customize the <em>presentation definition</em> used by the verifier. For each field provide one or more JSONPath
+      expressions (e.g. <code>$.credentialSubject.email</code>) and the corresponding JSON filter.
+    </p>
+  </header>
+
+  <section class="builder__actions">
+    <label class="builder__import">
+      <input type="file" accept="application/json" (change)="importFromFile($event)">
+      <span>Import JSON</span>
+    </label>
+    <button type="button" class="builder__secondary" (click)="resetToSample()">Load Izylife sample</button>
+    <span *ngIf="importError" class="builder__error">{{ importError }}</span>
+  </section>
+
+  <section class="builder__layout">
+    <form [formGroup]="builderForm" novalidate class="builder__form">
+      <section class="card">
+        <h2>General details</h2>
+        <div class="field">
+          <label for="definition-id">Definition ID</label>
+          <input id="definition-id" type="text" autocomplete="off" formControlName="id">
+        </div>
+        <div class="field">
+          <label for="definition-name">Name</label>
+          <input id="definition-name" type="text" autocomplete="off" formControlName="name">
+        </div>
+        <div class="field">
+          <label for="definition-purpose">Purpose</label>
+          <textarea id="definition-purpose" rows="2" formControlName="purpose"></textarea>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>Proof types (ldp_vp)</h2>
+        <p class="card__helper">Add the allowed values for <code>format.ldp_vp.proof_type</code>.</p>
+        <div formArrayName="proofTypes" class="dynamic-list">
+          <div *ngFor="let control of proofTypes.controls; let i = index" class="dynamic-list__item">
+            <input [formControlName]="i" type="text" autocomplete="off">
+            <button type="button" class="link" (click)="removeProofType(i)">Remove</button>
+          </div>
+        </div>
+        <button type="button" class="builder__secondary" (click)="addProofType()">Add proof type</button>
+      </section>
+
+      <section class="card">
+        <h2>Submission requirements</h2>
+        <p class="card__helper">Configure the rules for each group (optional, leave blank to skip).</p>
+        <div formArrayName="submissionRequirements" class="dynamic-list">
+          <div *ngFor="let group of submissionRequirements.controls; let i = index" [formGroupName]="i" class="submission">
+            <div class="field">
+              <label>Name</label>
+              <input type="text" formControlName="name" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Rule</label>
+              <input type="text" formControlName="rule" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>From</label>
+              <input type="text" formControlName="from" autocomplete="off">
+            </div>
+            <button type="button" class="link" (click)="removeSubmissionRequirement(i)">Remove</button>
+          </div>
+        </div>
+        <button type="button" class="builder__secondary" (click)="addSubmissionRequirement()">
+          Add submission requirement
+        </button>
+      </section>
+
+      <section class="card">
+        <h2>Input descriptors</h2>
+        <p class="card__helper">
+          Each descriptor defines the attributes requested from the wallet. Paths support JSONPath and you can provide an
+          optional JSON filter.
+        </p>
+        <div formArrayName="inputDescriptors" class="descriptor-list">
+          <article
+            *ngFor="let descriptorGroup of inputDescriptorGroups; let i = index"
+            [formGroupName]="i"
+            class="descriptor"
+          >
+            <header class="descriptor__header">
+              <h3>Descriptor {{ i + 1 }}</h3>
+              <button type="button" class="link link--danger" (click)="removeInputDescriptor(i)">Delete</button>
+            </header>
+
+            <div class="field">
+              <label>ID</label>
+              <input type="text" formControlName="id" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Name</label>
+              <input type="text" formControlName="name" autocomplete="off">
+            </div>
+            <div class="field">
+              <label>Purpose</label>
+              <textarea rows="2" formControlName="purpose"></textarea>
+            </div>
+            <div class="field">
+              <label>Groups (comma separated)</label>
+              <input type="text" formControlName="group" autocomplete="off">
+            </div>
+
+            <div formArrayName="fields" class="descriptor__fields">
+              <section
+                *ngFor="let fieldGroup of fieldsAt(i).controls; let j = index"
+                [formGroupName]="j"
+                class="descriptor-field"
+              >
+                <header class="descriptor-field__header">
+                  <h4>Field {{ j + 1 }}</h4>
+                  <button type="button" class="link" (click)="removeField(i, j)">Remove</button>
+                </header>
+                <div class="field">
+                  <label>JSONPath (one per line)</label>
+                  <textarea rows="2" formControlName="path"></textarea>
+                </div>
+                <div class="field">
+                  <label>Purpose (optional)</label>
+                  <input type="text" formControlName="purpose" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label>JSON filter</label>
+                  <textarea rows="4" formControlName="filter"></textarea>
+                  <p class="field__error" *ngIf="fieldGroup.get('filter')?.hasError('json')">
+                    Enter valid JSON for the filter (e.g. <code>{{ '{"type": "string"}' }}</code>).
+                  </p>
+                </div>
+              </section>
+            </div>
+
+            <button type="button" class="builder__secondary" (click)="addField(i)">Add field</button>
+          </article>
+        </div>
+        <button type="button" class="builder__secondary" (click)="addInputDescriptor()">Add input descriptor</button>
+      </section>
+    </form>
+
+    <aside class="preview">
+      <h2>JSON preview</h2>
+      <p class="preview__helper">
+        The JSON is kept in sync. Copy or download it to configure the verifier.
+      </p>
+
+      <ul *ngIf="formIssues.length" class="preview__issues">
+        <li *ngFor="let issue of formIssues">{{ issue }}</li>
+      </ul>
+
+      <pre *ngIf="definitionJson as json; else emptyPreview" class="preview__code"><code>{{ json }}</code></pre>
+      <ng-template #emptyPreview>
+        <p class="preview__placeholder">Fill in the form to generate the preview.</p>
+      </ng-template>
+
+      <div class="preview__actions">
+        <button type="button" (click)="copyJson()" [disabled]="!definitionJson">Copy JSON</button>
+        <a *ngIf="downloadUrl" [href]="downloadUrl" [attr.download]="downloadFileName" class="builder__secondary">
+          Download file
+        </a>
+      </div>
+      <p *ngIf="copyFeedback" class="preview__status">{{ copyFeedback }}</p>
+    </aside>
+  </section>
+</main>
