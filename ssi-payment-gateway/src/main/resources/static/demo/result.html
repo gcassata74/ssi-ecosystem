@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>SSI Payment Result</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 2rem; background: #f8fafc; }
+        h1 { color: #0f172a; }
+        #card { background: #fff; padding: 1.5rem; border-radius: 10px; box-shadow: 0 2px 12px rgba(15,23,42,0.12); max-width: 720px; }
+        .status { font-weight: bold; }
+        pre { background: #0f172a; color: #e2e8f0; padding: 1rem; border-radius: 8px; overflow: auto; }
+        a { color: #2563eb; }
+    </style>
+</head>
+<body>
+<h1>SSI Payment Result</h1>
+<div id="card">
+    <p id="summary">Loading payment status…</p>
+    <p class="status" id="status"></p>
+    <p id="holder"></p>
+    <p id="sandbox"></p>
+    <pre id="credential">Waiting for credential preview…</pre>
+    <p><a href="/demo/index.html">Start another payment</a></p>
+</div>
+
+<script>
+    const params = new URLSearchParams(window.location.search);
+    const paymentId = params.get('paymentId');
+    const statusRef = document.getElementById('status');
+    const summaryRef = document.getElementById('summary');
+    const holderRef = document.getElementById('holder');
+    const sandboxRef = document.getElementById('sandbox');
+    const credentialRef = document.getElementById('credential');
+
+    if (!paymentId) {
+        summaryRef.textContent = 'Missing paymentId in query string.';
+    } else {
+        summaryRef.textContent = `Payment ${paymentId}`;
+        fetch(`/api/payments/${paymentId}`)
+            .then(res => res.json())
+            .then(data => {
+                statusRef.textContent = `Status: ${data.status}`;
+                holderRef.textContent = `Holder DID: ${data.holderDid || 'n/a'} | Name: ${data.holderName || 'n/a'}`;
+                sandboxRef.textContent = `Sandbox reference: ${data.sandboxPaymentId || 'n/a'}`;
+                credentialRef.textContent = JSON.stringify(data.credentialPreview, null, 2);
+            })
+            .catch(err => {
+                statusRef.textContent = `Error reading payment: ${err.message}`;
+            });
+    }
+</script>
+</body>
+</html>

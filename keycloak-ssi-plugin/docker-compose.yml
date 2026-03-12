@@ -1,0 +1,15 @@
+version: "3.9"
+
+services:
+  keycloak:
+    build:
+      context: .
+    image: keycloak-custom:latest
+    container_name: keycloak
+    ports:
+      - "9080:8080"
+    environment:
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      KC_SPI_THEME_ADMIN_THEME: ${KC_SPI_THEME_ADMIN_THEME:-oidc4vc-admin}
+    restart: unless-stopped
