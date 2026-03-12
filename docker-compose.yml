@@ -1,0 +1,22 @@
+services:
+  ssi-issuer-verifier:
+    build:
+      context: ./ssi-issuer-verifier
+    restart: unless-stopped
+    environment:
+      SPRING_DATA_MONGODB_URI: mongodb://host.docker.internal:27017/ssi-issuer-verifier
+      SPRING_DATA_MONGODB_DATABASE: ssi-issuer-verifier
+      APP_ISSUER_ENDPOINT: https://izylife-issuer.eu.ngrok.io
+      APP_VERIFIER_ENDPOINT: https://izylife-issuer.eu.ngrok.io
+      SERVER_FORWARD_HEADERS_STRATEGY: framework
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "9090:9090"
+
+  ssi-client:
+    build:
+      context: ./ssi-client-application
+    restart: unless-stopped
+    ports:
+      - "9091:9091"
