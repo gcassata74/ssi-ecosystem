@@ -1,282 +1,719 @@
-# Izylife SSI Demo Platform
+# Izylife SSI Ecosystem
 
-A mono-repo that bundles every moving part of the Izylife Self-Sovereign Identity (SSI) demonstrator: the Spring Boot issuer/verifier portal, a sample verifier-facing client application, the reusable TypeScript authentication SDK, and an Ionic wallet for holders. Use this workspace to explore how issuance (OIDC4VCI), presentation (OIDC4VP), onboarding, and OAuth-style verifier authorization come together end-to-end.
+This repository is a mono-repo for an end-to-end Self-Sovereign Identity demo. It contains the issuer and verifier portal, a sample verifier-facing client application, a reusable authentication SDK, and a holder wallet. Together these modules demonstrate credential issuance with OIDC4VCI, credential presentation with OIDC4VP, verifier authorization, onboarding orchestration, and optional SPID-based operator login.
 
-## Contents
+## Table of Contents
 
-- [High-Level View](#high-level-view)
-- [System Architecture](#system-architecture)
-- [End-to-End Flows](#end-to-end-flows)
-- [Projects](#projects)
-  - [ssi-issuer-verifier](#ssi-issuer-verifier)
-  - [ssi-client-application](#ssi-client-application)
-  - [ssi-client-lib](#ssi-client-lib)
-  - [ssi-wallet](#ssi-wallet)
-- [Running the Demo Stack](#running-the-demo-stack)
-- [Development Workflows](#development-workflows)
-- [Configuration Reference](#configuration-reference)
-- [Key REST & OIDC Endpoints](#key-rest--oidc-endpoints)
-- [Testing & Quality Gates](#testing--quality-gates)
-- [Troubleshooting Cheatsheet](#troubleshooting-cheatsheet)
-- [Additional Resources](#additional-resources)
+- [What Is In This Repo](#what-is-in-this-repo)
+- [Architecture Overview](#architecture-overview)
+- [Main Runtime Flows](#main-runtime-flows)
+- [Module Details](#module-details)
+  - [`ssi-issuer-verifier`](#ssi-issuer-verifier)
+  - [`ssi-client-application`](#ssi-client-application)
+  - [`ssi-client-lib`](#ssi-client-lib)
+  - [`ssi-wallet`](#ssi-wallet)
+- [How The Modules Work Together](#how-the-modules-work-together)
+- [Build And Run](#build-and-run)
+- [Configuration Summary](#configuration-summary)
+- [Important Endpoints](#important-endpoints)
+- [Project Governance](#project-governance)
+- [Development Notes](#development-notes)
+- [Troubleshooting](#troubleshooting)
 
-## High-Level View
+## What Is In This Repo
 
-| Component | Purpose | Tech | Default Port |
+| Module | Role | Main Tech | Default Port |
 | --- | --- | --- | --- |
-| `ssi-issuer-verifier` | Issuer & verifier operator portal, OIDC4VCI/OIDC4VP APIs, tenancy, SPID integration | Spring Boot 3.2, Angular 17, MongoDB | 9090 |
-| `ssi-client-application` | Sample relying-party client that consumes the verifier portal through the shared SDK | Spring Boot 3.5, Angular 20 | 9091 |
-| `ssi-client-lib` | `@ssi/issuer-auth-client` TypeScript SDK (core + Angular helpers) | TypeScript, tsup | _n/a_ |
-| `ssi-wallet` | Ionic/Angular wallet for holders (web, Android, iOS via Capacitor) | Angular 20, Capacitor 7 | 8100 (Ionic dev server) |
+| `ssi-issuer-verifier` | Core platform. Hosts issuer APIs, verifier APIs, onboarding state, admin APIs, SPID integration, and the operator UI. | Spring Boot 3.2, Angular 17, MongoDB | `9090` |
+| `ssi-client-application` | Sample verifier-side application that uses the shared SDK to start verifier flows and consume returned tokens. | Spring Boot 3.5, Angular 20 | `9091` |
+| `ssi-client-lib` | Reusable TypeScript SDK that wraps auth, PKCE, token handling, redirect recovery, and Angular integration. | TypeScript, tsup | n/a |
+| `ssi-wallet` | Holder wallet used to scan QR codes, receive credentials, store them, and submit presentations. | Ionic 8, Angular 20, Capacitor 7 | `8100` in dev |
 
-Top-level automation (`Makefile`, log files, ngrok placeholders) live beside the projects.
+At the root you also have:
 
-## System Architecture
+- `Makefile`: convenience commands for starting and stopping the demo.
+- `docker-compose.yml`: containerized launcher for the issuer/verifier service and sample client.
 
+## Architecture Overview
+
+The issuer/verifier service is the center of the system. The sample client application and the wallet both depend on it, but in different ways:
+
+- the client application depends on it as an authorization server and verifier portal,
+- the wallet depends on it as an OIDC4VCI issuer and OIDC4VP verifier endpoint,
+- the SDK exists to make that verifier integration reusable,
+- MongoDB stores dynamic platform data such as tenants and related persisted configuration.
+
+```mermaid
+flowchart LR
+    subgraph Operator Side
+        OP[Issuer/Verifier Portal UI<br/>Angular]
+    end
+
+    subgraph Core Platform
+        IV[ssi-issuer-verifier<br/>Spring Boot]
+        DB[(MongoDB)]
+    end
+
+    subgraph Verifier Side
+        CA[ssi-client-application<br/>Angular + Spring Boot shell]
+        SDK[ssi-client-lib<br/>TypeScript SDK]
+    end
+
+    subgraph Holder Side
+        WAL[ssi-wallet<br/>Ionic/Angular]
+    end
+
+    OP --> IV
+    IV <--> DB
+    CA --> SDK
+    SDK --> IV
+    WAL --> IV
+    CA -. redirect / OAuth-style verifier auth .-> IV
+    WAL -. OIDC4VCI issuance .-> IV
+    WAL -. OIDC4VP presentation .-> IV
 ```
-                          +----------------------+
-                          |  MongoDB (demo)      |
-                          |  Tenant & state data |
-                          +----------+-----------+
-                                     ^
-                                     |
-                 +-------------------+-------------------+
-                 | Spring Boot @ 9090 (ssi-issuer-verifier)|
-                 | - OIDC4VCI issuer                      |
-                 | - OIDC4VP verifier                     |
-                 | - REST APIs & WebSocket updates        |
-                 +----------+-----------------------------+
-                            ^
-            OIDC4VP redirect|                       Credential offers
-                            |
-   +------------------------+------------------------+
-   |   Angular SPA (issuer-verifier frontend)        |
-   |   QR onboarding, credential issuance,           |
-   |   verification dashboards                       |
-   +------------------------+------------------------+
-                            |
-         OAuth2 / SDK       |                        OIDC4VCI
-                            v
-+----------------+      +------------------+      +-------------------+
-| Browser / UI   |      | ssi-client-lib   |      | Ionic Wallet      |
-| (Angular 20)   |----->| @ssi/issuer-     |<-----| (ssi-wallet)      |
-| Client App     |      | auth-client SDK  |      | OIDC4VCI grant    |
-| (9091)         |      | (PKCE, tokens,   |      | OIDC4VP response  |
-|                |      | verifier portal) |      | generation        |
-+----------------+      +------------------+      +-------------------+
+
+## Main Runtime Flows
+
+### 1. Credential Issuance Flow
+
+This is the holder onboarding path. The operator starts from the issuer/verifier portal, the wallet scans the generated QR code, and the backend completes an OIDC4VCI-style issuance exchange.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Operator as Operator UI
+    participant Portal as ssi-issuer-verifier
+    participant Wallet as ssi-wallet
+
+    Operator->>Portal: Request issuer onboarding / credential offer
+    Portal-->>Operator: QR code with credential_offer or credential_offer_uri
+    Wallet->>Portal: Resolve credential offer metadata
+    Wallet->>Portal: POST /oidc4vci/token with pre-authorized code
+    Portal-->>Wallet: access_token + c_nonce
+    Wallet->>Wallet: Build proof JWT using wallet key material
+    Wallet->>Portal: POST /oidc4vci/credential
+    Portal->>Portal: Sign credential with issuer signing key
+    Portal-->>Wallet: Verifiable credential
+    Wallet->>Wallet: Store credential in secure storage
+    Wallet->>Portal: Notify onboarding credentials received
+    Portal-->>Operator: WebSocket/onboarding update
 ```
 
-Key ideas:
+Important details:
 
-- The issuer/verifier portal is the authoritative backend. It exposes REST endpoints for credential templates, issuing demo credentials, verifying presentations, registering tenants, and handling both halves of the OIDC4VCI/OIDC4VP specifications.
-- The reusable SDK (`ssi-client-lib`) wraps those OAuth2-style interactions (authorization code, PKCE, token refresh, SPA navigation helpers) so any front-end can piggy-back on the same flows.
-- The sample client application demonstrates how verifiers embed the SDK to kick off the verification portal, obtain bearer tokens carrying credential previews, and display the resulting claims.
-- The Ionic wallet is a relying-party agent that consumes the credential offers, performs the grant, and sends credential presentations back to the verifier portal.
+- `ssi-issuer-verifier` exposes issuer metadata and credential offer endpoints.
+- `ssi-wallet` resolves the offer, redeems the pre-authorized code, builds a proof JWT, and stores the resulting credential.
+- onboarding is not only a QR rendering problem; it is a state machine managed by the backend and pushed to the UI over WebSockets.
 
-## End-to-End Flows
+### 2. Verifier Authorization + OIDC4VP Flow
 
-### Credential Issuance (OIDC4VCI)
+This is the verifier-facing path. A browser user starts in the sample client app, is redirected to the verifier portal, the wallet submits a presentation, and the client application receives an access token representing the verified holder context.
 
-1. An operator in `ssi-issuer-verifier` creates or reuses a credential offer (`/oidc4vci/credential-offers/{id}`) and surfaces it as a QR code.
-2. The wallet scans the QR, retrieves the offer JSON, and follows the grant indicated (`authorization_code` or `pre-authorized_code`).
-3. Token exchange happens against `/oidc4vci/token`. The portal returns `access_token`, `token_type`, `expires_in`, and a `c_nonce` for proof binding.
-4. The wallet requests a verifiable credential via `/oidc4vci/credential` by posting the proof JWT signed with the wallet binding key. The demo service returns a `jwt_vc_json` payload signed with the issuer key configured in `application.yml`.
-5. The wallet persists the credential and acknowledges receipt via `/api/onboarding/issuer/credentials-received` to advance the onboarding carousel shown to the operator.
+```mermaid
+sequenceDiagram
+    autonumber
+    participant Browser as Client Browser
+    participant Client as ssi-client-application
+    participant SDK as ssi-client-lib
+    participant Portal as ssi-issuer-verifier
+    participant Wallet as ssi-wallet
 
-### Verification (OIDC4VP + Verifier OAuth)
+    Browser->>Client: Click "Go to Verifier"
+    Client->>SDK: beginVerifierFlow()
+    SDK->>SDK: Generate PKCE verifier + state
+    SDK->>Portal: Redirect browser to verifier portal
+    Portal-->>Browser: Render verifier QR / request flow
+    Wallet->>Portal: Fetch request object / presentation definition
+    Wallet->>Wallet: Select matching credentials and build VP token
+    Wallet->>Portal: POST /oidc4vp/responses
+    Portal->>Portal: Verify VP, nonce, state, descriptor map
+    Portal->>Portal: Issue short-lived authorization code
+    Portal-->>Browser: Redirect back to client redirect_uri with code
+    Browser->>SDK: Return to SPA with code + state
+    SDK->>Portal: POST /oauth2/token with PKCE verifier
+    Portal-->>SDK: access_token / refresh_token
+    SDK-->>Client: tokens$
+    Client->>Client: Decode credential_preview claims for display
+```
 
-1. A verifier using the client application triggers `SsiAuthService.beginVerifierFlow()` which navigates the user to the issuer/verifier portal (customizable via `portalPath`).
-2. The portal generates an OIDC4VP request object (`/oidc4vp/requests/{requestId}`) and QR payload (`app.verifier.qr-payload`). The wallet scans it and submits the presentation to `/oidc4vp/responses`.
-3. The portal validates nonce, definition ID, descriptor maps, and delegates proof checks to `VerificationService`. On success it issues an authorization code stored by `VerifierAuthorizationService`.
-4. The browser is redirected back to the client application, which exchanges the authorization code at `/oauth2/token`. The resulting access token contains `credential_preview` claims that the sample UI decodes to show DID, holder attributes, and raw JWT payload.
-5. Token refresh and logout are handled by the SDK (`SsiAuthClient`) so verifiers can maintain sessions or trigger federated sign-out.
+Important details:
 
-### Tenant Onboarding & SPID (optional)
+- the sample client does not directly implement OIDC4VP; it delegates that concern to the portal plus the shared SDK,
+- the SDK keeps PKCE, state, token persistence, refresh timing, and original URL restoration in one place,
+- the final verifier-facing token contains preview claims that the Angular sample UI decodes and shows to the user.
 
-- `/api/onboarding/*` exposes the onboarding state machine used to orchestrate QR rotation between verifier login, issuer credentialing, and wallet acknowledgements. WebSocket updates (STOMP over SockJS) push changes to the Angular portal UI.
-- When `app.spid.enabled=true`, Spring Security acts as an Italian SPID Service Provider. Operators authenticate via SAML, and the portal exports metadata at `/spid/metadata`. Supporting utilities in `src/test/java/com/izylife/ssi/tools/` help debug SPID responses.
+### 3. Onboarding State Flow
 
-## Projects
+The operator UI does not just show a static page. It reacts to backend-managed onboarding transitions.
 
-### ssi-issuer-verifier
+```mermaid
+flowchart TD
+    A[Start onboarding] --> B[Verifier QR generated]
+    B --> C[Wallet scans verifier request]
+    C --> D[Presentation accepted]
+    D --> E[Issuer QR generated]
+    E --> F[Wallet scans credential offer]
+    F --> G[Credential issued]
+    G --> H[Wallet confirms receipt]
+    H --> I[Onboarding complete]
 
-- **Stack:** Spring Boot 3.2, Maven, Angular 17, MongoDB, SockJS/STOMP for live updates.
-- **Features:**
-  - Implements `.well-known/openid-credential-issuer` and `.well-known/oauth-authorization-server`.
-  - Endpoints for credential templates (`/api/credentials/templates`), issuance (`/api/credentials/issue`), verification (`/api/verification/presentations`), tenant CRUD (`/api/tenants`), onboarding (`/api/onboarding/*`), and SPID SAML metadata/login.
-  - OIDC4VCI token, authorization, offer, and credential pipelines backed by `Oidc4vciService`.
-  - OIDC4VP request/response handling with JWT signing (`/oidc4vp/requests/{id}`, `/oidc4vp/responses`, `/oidc4vp/jwks.json`).
-  - Configurable demo signing keys for issuer and verifier (see `app.issuer.signing-key` and `app.verifier.signing-key` in `src/main/resources/application.yml`).
-- **Build:** `mvn clean package` compiles the Angular SPA, copies `frontend/dist` into `target/classes/static`, and produces `target/ssi-issuer-verifier-0.0.1-SNAPSHOT.jar`.
-- **Run:** `mvn spring-boot:run` (port `9090`). Requires MongoDB (default URI `mongodb://localhost:27017/ssi-issuer-verifier`). Use the included Docker snippet to launch a local instance.
-- **Frontend:** Angular workspace under `frontend/` (proxied dev server via `npm start`). Real-time onboarding progress uses the `/ws` SockJS endpoint exposed by `WebSocketConfig`.
+    E --> J[SPID prompt]
+    J --> E
+```
 
-### ssi-client-application
+## Module Details
 
-- **Stack:** Spring Boot 3.5 backend (stub façade) + Angular 20 SPA wired through a parent Maven build.
-- **Purpose:** Demonstrates verifier-side consumption of the issuer portal through the shared SDK.
-- **Frontend behaviour:** 
-  - Bootstraps `SsiAuthService` from `@ssi/issuer-auth-client/angular`.
-  - The primary CTA (`Go to Verifier`) calls `beginVerifierFlow()`, taking the user to the portal for credential presentation.
-  - After redirect, tokens streamed from `tokens$` update the UI with holder DID, credential subject claims, and raw JWT payload.
-- **Build & run:** `mvn -f backend/pom.xml spring-boot:run` (port `9091`). `mvn -f backend/pom.xml generate-resources` installs Node locally and produces the production Angular bundle.
-- **Dev mode:** `npm start` inside `frontend/` for live reload; configure an Angular proxy if you reach the issuer portal directly.
+### `ssi-issuer-verifier`
 
-### ssi-client-lib
+This is the main platform module and the only part of the repo that actually implements SSI protocol endpoints. Everything else either consumes it or demonstrates how to integrate with it.
 
-- **Package:** `@ssi/issuer-auth-client` (core SDK + Angular helpers).
-- **Highlights:**
-  - Authorization Code + PKCE initiation (`login`), token storage, refresh scheduling, logout helpers.
-  - Verifier portal helper (`beginVerifierFlow`) that preserves state, PKCE verifier, and original URL to resume SPA navigation.
-  - Storage abstraction so consumers can plug custom persistence (defaults to `localStorage`/`sessionStorage`).
-  - Event emitters for authentication lifecycle (`authenticated`, `token_refreshed`, `token_expired`, `logout`, `error`).
-  - Angular providers (`provideSsiAuth`), services (`SsiAuthService`), and an HTTP interceptor for effortless integration.
-- **Build:** `npm install && npm run build` (bundles emitted under `dist/` as ESM+CJS with type declarations). The Angular package is published beside the core bundles.
-- **Local consumption:** `npm pack` produces `ssi-issuer-auth-client-*.tgz`. The client application references `../../ssi-client-lib/ssi-issuer-auth-client-0.1.3.tgz`.
+#### What It Contains
 
-### ssi-wallet
+| Area | Purpose |
+| --- | --- |
+| `src/main/java/com/izylife/ssi/config` | Binds application properties, configures CORS, Mongo, security, SPID SAML, and WebSockets. |
+| `src/main/java/com/izylife/ssi/controller` | REST and OIDC entry points for issuance, verification, onboarding, SPID, QR generation, and token exchange. |
+| `src/main/java/com/izylife/ssi/controller/admin` | Admin APIs for admin login, tenant management, client management, and presentation definition management. |
+| `src/main/java/com/izylife/ssi/service` | Business logic for issuance, request generation, verification, onboarding state, QR generation, Keycloak lookups, and token minting. |
+| `src/main/java/com/izylife/ssi/security` | SPID success handling and custom admin authentication/token handling. |
+| `src/main/java/com/izylife/ssi/model` | MongoDB-backed domain objects such as tenants, admin clients, and presentation definitions. |
+| `src/main/java/com/izylife/ssi/repository` | Spring Data repositories for persistent models. |
+| `src/main/resources/application.yml` | Main runtime configuration for issuer, verifier, CORS, MongoDB, SPID, and logging. |
+| `frontend/src/app` | Angular operator UI for onboarding, issuance pages, admin screens, and presentation-definition management. |
 
-- **Stack:** Ionic 8 + Angular 20 wrapped with Capacitor 7 for native builds.
-- **Structure:** `mobile-app/` (Angular/Ionic source) and `docs/` (issuer integration guides, Ionic troubleshooting, Spring Boot credential issuance walkthrough using Nimbus JOSE).
-- **Dev workflow:** 
-  - `make serve` (alias for `ionic serve`) on `http://localhost:8100`.
-  - `make add-android`, `make sync`, `make run-android` to manage native shells.
-  - Inside `mobile-app/`: `npm test`, `npm run lint`, and `npx cap sync`.
-- **Role in the ecosystem:** Acts as the credential holder. Scans pre-authorized QR codes, performs the `/oidc4vci/token` exchange, submits proofs to `/oidc4vci/credential`, and later answers OIDC4VP requests from the verifier portal.
-- **Docs to read first:** `docs/ionic-dev.md` for development ergonomics and `docs/spring-issuer-credential.md` for credential issuance logic.
+#### Backend Responsibilities
 
-## Running the Demo Stack
+1. OIDC4VCI issuer
+   - exposes discovery metadata,
+   - creates credential offers,
+   - exchanges grants for access tokens,
+   - signs and returns demo credentials.
 
-1. **Prerequisites**
-   - Java 17+
-   - Maven 3.9+
-   - Node.js 18+ (Node 20+ for the issuer portal frontend)
-   - npm 10+
-   - Docker (optional but recommended for MongoDB)
-2. **Start MongoDB**
-   ```bash
-   docker run --name ssi-mongo -p 27017:27017 -d mongo:7
-   ```
-3. **Bootstrap Angular assets (first time)**
-   ```bash
-    # issuer portal
-   (cd ssi-issuer-verifier && mvn generate-resources)
+2. OIDC4VP verifier
+   - generates request objects,
+   - publishes verifier JWKS,
+   - accepts wallet responses,
+   - validates the submission payload,
+   - turns a successful presentation into an authorization code.
 
-    # client application
-   (cd ssi-client-application && mvn -f backend/pom.xml generate-resources)
-   ```
-4. **Run everything via Makefile**
-   ```bash
-   make run-ssi-demo
-   ```
-   - Starts the issuer portal on `9090` and the client application on `9091` in the background, streaming logs to `issuer.out` / `issuer.err` and `client.out` / `client.err`.
-   - The `ngrok` step is left commented—uncomment when you need public URLs.
-5. **Interact**
-   - Visit `http://localhost:9090` for the issuer/verifier portal UI.
-   - Visit `http://localhost:9091` for the verifier client SPA.
-   - Use the wallet (web or mobile) to scan the QR code presented by the portal.
-6. **Observe & stop**
-   ```bash
-   make logs           # tail both app logs
-   make stop-ssi-demo  # terminate background JVMs
-   make clean          # remove PID + log files
-   ```
+3. Verifier authorization server
+   - receives the returned authorization code,
+   - exchanges it at `/oauth2/token`,
+   - returns access tokens used by verifier-side clients,
+   - supports refresh-token based session continuation through the shared SDK.
 
-Manual start alternative:
+4. Onboarding orchestrator
+   - keeps track of which QR code or prompt should currently be shown,
+   - publishes updates over SockJS/STOMP,
+   - coordinates verifier step, issuer step, and wallet acknowledgements.
+
+5. Operator platform
+   - serves the Angular SPA,
+   - optionally authenticates operators via SPID SAML,
+   - supports admin login and administration endpoints,
+   - can source presentation definitions from Keycloak.
+
+#### Important Backend Classes
+
+| Class / Group | Responsibility |
+| --- | --- |
+| `Oidc4vciService` | Core issuance state handling: credential offer records, authorization grants, access tokens, nonce handling, and demo profile data. |
+| `Oidc4VpRequestService` | Builds verifier request objects and tracks authorization sessions. |
+| `Oidc4VpResponseController` + `VerificationService` | Accept and validate wallet-submitted VP data, then promote it into verifier auth state. |
+| `VerifierAuthorizationService` | Stores short-lived authorization codes issued after a successful presentation. |
+| `VerifierTokenService` | Exchanges those codes for access tokens consumed by verifier clients. |
+| `OnboardingStateService` | Maintains the onboarding state machine and emits updates to the Angular UI. |
+| `PresentationDefinitionRegistry` | Resolves the active presentation definition, including fallback behavior. |
+| `KeycloakPresentationDefinitionService` | Pulls `credentials.json` from Keycloak when that integration is enabled. |
+| `AdminClientService` / `AdminPresentationDefinitionService` | Administrative CRUD for clients and presentation definitions. |
+| `SpidSamlConfiguration` | Builds Spring Security SAML2 SP wiring for SPID support. |
+
+#### Frontend Responsibilities
+
+The Angular frontend inside this module is the operator-facing console. It is not a separate product; it is served by the same Spring Boot application.
+
+| Frontend Area | Purpose |
+| --- | --- |
+| `onboarding-page` | Main verifier onboarding view. Shows current QR, errors, and step transitions. |
+| `issuer-page` | Issuer-side onboarding step. Displays issuer QR or SPID prompt and credential preview details. |
+| `admin/admin-login` | Admin login screen backed by custom admin auth endpoints. |
+| `admin/admin-console` | Admin management surface. |
+| `presentation-definition-builder` | UI for editing or building presentation definitions. |
+| `services/onboarding.service.ts` | Fetches current onboarding state and subscribes to backend updates. |
+| `services/admin-auth.service.ts` | Admin authentication client. |
+| `services/admin-api.service.ts` | Admin API wrapper for console features. |
+
+#### Data And Trust Boundaries
+
+- MongoDB stores tenant and admin-related state, not wallet-held credentials.
+- issuer and verifier signing keys are configured in `application.yml`; these are demo keys and should be replaced in any serious deployment.
+- the wallet is the holder of issued credentials; the portal only issues and verifies, it does not act as the holder wallet.
+
+#### Packaging Model
+
+This module builds as a single executable JAR:
+
+```mermaid
+flowchart LR
+    A[Angular frontend build] --> B[frontend/dist]
+    B --> C[Maven resources copy]
+    D[Spring Boot classes + resources] --> E[Executable JAR]
+    C --> E
+```
+
+### `ssi-client-application`
+
+This module is the sample verifier integration. It demonstrates how a third-party application would use the shared SDK to delegate SSI-heavy work to the issuer/verifier portal.
+
+#### What It Contains
+
+| Area | Purpose |
+| --- | --- |
+| `pom.xml` | Parent aggregator for `frontend` and `backend`. |
+| `backend/` | Minimal Spring Boot app that can serve the built SPA and later host verifier-side APIs. |
+| `frontend/` | Angular 20 SPA that integrates `@ssi/issuer-auth-client`. |
+
+#### What The Backend Does
+
+Right now the backend is intentionally thin:
+
+- it starts a Spring Boot application on port `9091`,
+- it serves static files copied from the Angular build,
+- it gives you a place to add verifier-owned APIs later,
+- it is not where SSI protocol logic lives.
+
+That separation is important: this module demonstrates a consuming application, not a second SSI server.
+
+#### What The Frontend Does
+
+The Angular app is where the useful demo behavior currently lives:
+
+- configures the SDK with the issuer/verifier base URL,
+- uses the current browser origin as the redirect URI and client identifier,
+- sends the browser into the verifier portal via `beginVerifierFlow()`,
+- listens to `tokens$` from the Angular auth service,
+- decodes the returned JWT access token,
+- extracts `credential_preview.subject` claims and renders them to the user.
+
+In practice, this module shows how a verifier can:
+
+1. send a user to the portal,
+2. wait for the wallet to complete presentation,
+3. receive an access token carrying verified context,
+4. continue application logic from there.
+
+#### Why It Exists
+
+Without this module, the repo would only show the platform side. This project proves the platform can be integrated from a normal browser-based app without embedding SSI protocol code everywhere.
+
+#### Internal Runtime Flow
+
+```mermaid
+flowchart LR
+    A[Angular app] --> B[provideSsiAuth]
+    B --> C[SsiAuthService]
+    C --> D[beginVerifierFlow()]
+    D --> E[Redirect to ssi-issuer-verifier]
+    E --> F[Return with code]
+    F --> G[Token exchange via SDK]
+    G --> H[Angular UI decodes credential_preview]
+```
+
+### `ssi-client-lib`
+
+This is the reusable integration layer. It packages the auth and redirect behavior required by verifier-side frontends so that application teams do not have to reimplement PKCE, token storage, refresh scheduling, or redirect recovery.
+
+#### What It Contains
+
+| File / Area | Purpose |
+| --- | --- |
+| `src/SsiAuthClient.ts` | Framework-agnostic core client. |
+| `src/types.ts` | Shared TypeScript contracts for config, tokens, events, and options. |
+| `src/utils.ts` | PKCE, URL building, storage helpers, JWT decoding, and expiration utilities. |
+| `src/angular/service.ts` | Angular facade exposing observables and delegation methods. |
+| `src/angular/interceptor.ts` | Optional `HttpClient` interceptor that injects bearer tokens. |
+| `src/angular/tokens.ts` | Angular DI tokens. |
+| `src/angular/index.ts` | `provideSsiAuth()` entry point. |
+
+#### Core Responsibilities
+
+1. Session bootstrap
+   - restore stored tokens,
+   - inspect the current URL for `code` and `state`,
+   - complete redirect callbacks,
+   - optionally trigger `login-required` behavior.
+
+2. Authorization flow management
+   - create PKCE verifier/challenge pairs,
+   - generate and persist state,
+   - build authorization URLs,
+   - redirect the browser to the portal.
+
+3. Verifier portal integration
+   - `beginVerifierFlow()` behaves like login, but targets the verifier portal path rather than the plain auth path,
+   - it preserves the original browser location so the SPA can resume where it started after redirect completion.
+
+4. Token lifecycle handling
+   - persist access, refresh, and ID tokens,
+   - schedule refresh before expiry,
+   - emit lifecycle events such as `authenticated`, `token_refreshed`, `token_expired`, `logout`, and `error`.
+
+5. Angular integration
+   - `provideSsiAuth()` wires the client into Angular dependency injection,
+   - `SsiAuthService` exposes `authStatus$` and `tokens$`,
+   - `SsiAuthInterceptor` can attach bearer tokens to outgoing HTTP calls.
+
+#### Why It Matters
+
+This library is what keeps verifier-facing applications small. The sample client application stays simple because protocol-adjacent browser concerns live here instead of in application components.
+
+#### SDK Redirect Handling Flow
+
+```mermaid
+sequenceDiagram
+    autonumber
+    participant App as Consumer App
+    participant SDK as SsiAuthClient
+    participant Storage as Browser Storage
+    participant Portal as ssi-issuer-verifier
+
+    App->>SDK: beginVerifierFlow()
+    SDK->>SDK: Generate state + PKCE verifier
+    SDK->>Storage: Persist session payload
+    SDK->>Portal: Redirect browser
+    Portal-->>App: Return with code + state
+    App->>SDK: init()
+    SDK->>Storage: Load persisted session
+    SDK->>Portal: Exchange code for tokens
+    Portal-->>SDK: access_token / refresh_token
+    SDK->>Storage: Persist tokens
+    SDK-->>App: authenticated state + token stream
+```
+
+### `ssi-wallet`
+
+This module is the holder side of the demo. It receives credentials and later presents them back to the verifier portal. It is an Ionic/Angular mobile application packaged through Capacitor, so it can run as a web app during development and as a native mobile app for device testing.
+
+#### What It Contains
+
+| Area | Purpose |
+| --- | --- |
+| `mobile-app/src/app/tab1` | Main action screen for QR scanning, credential offer acceptance, and VP submission. |
+| `mobile-app/src/app/services/oidc4vc.service.ts` | OIDC4VCI client logic: parse offer URIs, fetch issuer metadata, redeem codes, request credentials. |
+| `mobile-app/src/app/services/oidc4vp.service.ts` | OIDC4VP client logic: parse requests, select credentials, build VP token, post presentation responses. |
+| `mobile-app/src/app/services/credential.service.ts` | Secure persistence for verifiable credentials. |
+| `mobile-app/src/app/services/did.service.ts` | Creates and stores a `did:key` document derived from wallet key material. |
+| `mobile-app/src/app/services/key.service.ts` | Key pair generation and persistence used by issuance proofs and VP signing. |
+| `mobile-app/src/app/services/biometric-auth.service.ts` | Local biometric gating support. |
+| `mobile-app/src/app/services/biometric.guard.ts` | Route guard for biometric-protected sections. |
+| `docs/` | Supporting implementation notes and development guides. |
+
+#### Wallet Responsibilities
+
+1. QR scanning
+   - the main tab uses the browser or WebView camera,
+   - detects QR payloads,
+   - decides whether the payload is an OIDC4VCI or OIDC4VP request.
+
+2. Credential issuance consumption
+   - parse `openid-credential-offer` URIs,
+   - resolve inline or remote credential offers,
+   - fetch issuer metadata,
+   - redeem a pre-authorized code,
+   - build a proof JWT,
+   - request and store the credential.
+
+3. Presentation submission
+   - parse OIDC4VP request URIs or request objects,
+   - load stored credentials,
+   - derive or restore wallet DID and signing keys,
+   - build a verifiable presentation,
+   - wrap it into a VP token JWT,
+   - send it to the verifier response endpoint.
+
+4. Local identity management
+   - creates a `did:key` identifier from a P-256 public key,
+   - stores DID and credentials using secure storage plugins when available,
+   - falls back to in-memory behavior if secure storage is unavailable.
+
+#### Why It Matters
+
+Without this module, the repo would only simulate holder actions. This wallet proves that the issuer and verifier flows are consumable by an actual holder application that:
+
+- manages its own keys,
+- stores credentials locally,
+- signs proofs and presentations,
+- responds to QR-driven protocol hand-offs.
+
+#### Wallet Processing Flow
+
+```mermaid
+flowchart TD
+    A[Scan QR] --> B{Payload type}
+    B -->|Credential offer| C[OIDC4VCI flow]
+    B -->|Presentation request| D[OIDC4VP flow]
+    C --> E[Fetch metadata]
+    E --> F[Redeem token]
+    F --> G[Build proof JWT]
+    G --> H[Store credential]
+    D --> I[Parse request object]
+    I --> J[Select matching credentials]
+    J --> K[Build VP token]
+    K --> L[POST response to verifier]
+```
+
+## How The Modules Work Together
+
+The repo is easiest to understand if you think of the modules by ownership boundary:
+
+- `ssi-issuer-verifier` is the platform and protocol owner.
+- `ssi-client-lib` is the verifier integration toolkit.
+- `ssi-client-application` is the verifier consumer example.
+- `ssi-wallet` is the holder example.
+
+Another way to read the same boundary is:
+
+- operator uses `ssi-issuer-verifier`,
+- verifier integrates `ssi-client-lib`,
+- browser-based verifier app is shown by `ssi-client-application`,
+- holder uses `ssi-wallet`.
+
+## Build And Run
+
+### Prerequisites
+
+- Java 17+
+- Maven 3.9+
+- Node.js 18+ for Angular/Ionic work
+- npm 10+
+- MongoDB 7+ or Docker
+
+### Start MongoDB
 
 ```bash
-(cd ssi-issuer-verifier && mvn spring-boot:run)
-(cd ssi-client-application && mvn -f backend/pom.xml spring-boot:run)
+docker run --name ssi-mongo -p 27017:27017 -d mongo:7
 ```
 
-## Development Workflows
+### Recommended Manual Startup
 
-- **Hot reload Angular UIs:** `npm start` in `ssi-issuer-verifier/frontend` or `ssi-client-application/frontend`. Configure `proxy.conf.json` to avoid CORS headaches when hitting the backend directly.
-- **SDK hacking:** Work inside `ssi-client-lib`, run `npm run build -- --watch` (or point `npm link`) and update `ssi-client-application/frontend/package.json` to reference the locally built tarball.
-- **Wallet native builds:** Run `make add-android` once, then `make sync` before rebuilding in Android Studio. Remember that Capacitor commands must execute from `mobile-app/`.
-- **SPID testing:** Adjust `app.spid.*` properties in `ssi-issuer-verifier/src/main/resources/application.yml`. Export metadata via `curl http://localhost:9090/spid/metadata > spid.xml`.
-- **WebSocket debugging:** Subscribe to `/topic/onboarding` using the Angular portal or external STOMP clients to observe onboarding state transitions.
+Start each runtime explicitly the first time so it is clear what is happening.
 
-## Configuration Reference
+#### 1. Start the issuer/verifier portal
 
-| Setting | Location | Notes |
+```bash
+cd ssi-issuer-verifier
+mvn spring-boot:run
+```
+
+This runs the backend on `http://localhost:9090`. The Maven build will also manage the Angular frontend build when packaging.
+
+#### 2. Start the sample client application
+
+```bash
+cd ssi-client-application
+mvn -f backend/pom.xml generate-resources
+mvn -f backend/pom.xml spring-boot:run
+```
+
+This runs the sample verifier app on `http://localhost:9091`.
+
+#### 3. Start the wallet in web mode
+
+```bash
+cd ssi-wallet/mobile-app
+npm install
+npm start
+```
+
+This runs the wallet dev server on `http://localhost:8100`.
+
+### Root-Level Convenience Commands
+
+The root `Makefile` includes helper targets:
+
+- `make run-ssi-demo`
+- `make stop-ssi-demo`
+- `make logs`
+- `make clean`
+
+Use these as shortcuts when they match your workflow, but the module-specific commands above are the clearest way to understand and debug the system.
+
+### Docker Compose
+
+The root `docker-compose.yml` builds and starts:
+
+- `ssi-issuer-verifier`
+- `ssi-client`
+
+It expects MongoDB to be reachable through `host.docker.internal`.
+
+## Configuration Summary
+
+### `ssi-issuer-verifier`
+
+Main settings live in `src/main/resources/application.yml`.
+
+| Setting | Meaning |
+| --- | --- |
+| `server.port` | HTTP port for the core platform. |
+| `app.issuer.endpoint` | Public issuer base URL used in metadata and offers. |
+| `app.issuer.credential-issuer-id` | OIDC4VCI issuer identifier. |
+| `app.issuer.signing-key.*` | Demo issuer signing JWK used to sign credentials. |
+| `app.verifier.endpoint` | Public verifier base URL. |
+| `app.verifier.qr-payload` | Default verifier QR payload seed. |
+| `app.verifier.client-id` | Verifier response target used in OIDC4VP direct-post mode. |
+| `app.verifier.signing-key.*` | Demo verifier signing JWK. |
+| `spring.data.mongodb.*` | MongoDB connection information. |
+| `app.spid.*` | SPID SAML service-provider settings. |
+
+### `ssi-client-application`
+
+The Angular app configures the SDK in `frontend/src/app/app.config.ts`.
+
+Key choices made there:
+
+- `baseUrl` points to the issuer/verifier platform,
+- `redirectUri` is the current browser origin,
+- `clientId` is derived from that same origin,
+- `portalPath` is `/verifier`,
+- `client_id_scheme=redirect_uri` is passed as a portal parameter.
+
+### `ssi-client-lib`
+
+The SDK accepts config for:
+
+- `baseUrl`
+- `clientId`
+- `redirectUri`
+- `postLogoutRedirectUri`
+- `portalPath`
+- `portalParams`
+- `scopes`
+- `refreshTokens`
+- `refreshSkewMs`
+- `storageKey`
+- custom endpoint overrides
+
+### `ssi-wallet`
+
+Wallet runtime settings live under `mobile-app/src/environments/`.
+
+Most of the protocol behavior is currently driven by scanned payloads rather than a large static config object, which keeps the wallet flexible during demos.
+
+## Important Endpoints
+
+### Issuer Endpoints
+
+| Endpoint | Method | Purpose |
 | --- | --- | --- |
-| `server.port=9090` | `ssi-issuer-verifier/src/main/resources/application.yml` | Change issuer portal port. |
-| `server.port=9091` | `ssi-client-application/backend/src/main/resources/application.yml` | Change verifier client port. |
-| `SPRING_DATA_MONGODB_URI` | Environment variable | Overrides MongoDB connection string for the issuer portal. |
-| `app.issuer.endpoint` | `application.yml` | Public issuer base URL (ngrok-ready). |
-| `app.issuer.signing-key` | `application.yml` | Demo EC P-256 signing JWK for credentials. Replace in production. |
-| `app.verifier.qr-payload` | `application.yml` | QR content for OIDC4VP requests (customize audience + challenge). |
-| `app.spid.*` | `application.yml` | Toggle SPID Service Provider behaviour. |
-| `app.keycloak.*` | `application.yml` | Enable Keycloak admin integration (roles + presentation definitions). |
-| `@ssi/issuer-auth-client` config | `ssi-client-application/frontend/src/app/app.config.ts` | Defines base URL, client ID, scopes, redirect URIs for the SDK. |
-| `portalPath` / `portalParams` | SDK configuration | Control where `beginVerifierFlow()` navigates verifiers (defaults to `/`). |
+| `/.well-known/openid-credential-issuer` | `GET` | OIDC4VCI issuer metadata |
+| `/.well-known/oauth-authorization-server` | `GET` | OAuth/OIDC authorization server metadata |
+| `/oidc4vci/credential-offers/{offerId}` | `GET` | Resolve a stored credential offer |
+| `/oidc4vci/token` | `POST` | Exchange authorization or pre-authorized codes |
+| `/oidc4vci/credential` | `POST` | Issue the actual credential |
+| `/oidc4vci/jwks.json` | `GET` | Issuer JWKS |
 
-The SDK accepts additional overrides:
+### Verifier Endpoints
 
-- `endpoints.authorization`, `endpoints.token`, `endpoints.endSession` to align with custom deployments.
-- `storageKey` to avoid collisions when multiple applications reuse the same browser.
-- `refreshSkewMs` to tune the automatic refresh window (default 60 seconds).
-
-### Keycloak-managed presentation definitions
-
-The issuer portal can now source the OIDC4VP presentation definition (`credentials.json`) directly from a Keycloak deployment (default port `9080`). This lets customers curate which credentials a wallet must present without rebuilding the Spring service.
-
-1. **Prepare Keycloak** – run `docker-compose -f docker/keycloak/docker-compose.yml up -d` (administrator default `admin/admin`). Create or select the realm referenced by `APP_KEYCLOAK_REALM` (default `ssi`).
-2. **Service account for the portal** – create a confidential client (default ID `ssi-issuer-verifier`) with *Service Accounts Enabled* and copy the client secret. Grant it `view-users` and `view-clients` realm roles so it can resolve users and read client attributes.
-3. **Wallet verifier client** – create a client matching `APP_KEYCLOAK_PD_CLIENT_ID` (default `wallet-verifier`). In the *Attributes* tab add `credentials.json` with the full OIDC4VP presentation definition JSON you want wallets to satisfy. The attribute name can be customised via `APP_KEYCLOAK_PD_ATTRIBUTE`.
-4. **Wire the portal** – set `APP_KEYCLOAK_ENABLED=true` and `APP_KEYCLOAK_PD_ENABLED=true`, plus `APP_KEYCLOAK_BASE_URL`, `APP_KEYCLOAK_CLIENT_ID`, `APP_KEYCLOAK_CLIENT_SECRET`, and optional cache tuning (`APP_KEYCLOAK_PD_CACHE_TTL`).
-
-When the feature is active the portal fetches and caches the JSON definition from Keycloak. Updates in Keycloak propagate automatically after the configured cache TTL. If the integration is disabled or the attribute is missing, the portal falls back to the built-in `staff-credential.json` file.
-
-## Key REST & OIDC Endpoints
-
-| Endpoint | Method | Description |
+| Endpoint | Method | Purpose |
 | --- | --- | --- |
-| `/.well-known/openid-credential-issuer` | GET | OIDC4VCI issuer metadata |
-| `/.well-known/oauth-authorization-server` | GET | Authorization server metadata |
-| `/oidc4vci/credential-offers/{offerId}` | GET | Retrieve credential offer JSON |
-| `/oidc4vci/token` | POST (form) | Exchange authorization or pre-authorized codes |
-| `/oidc4vci/credential` | POST (JSON) | Issue demo credential (`jwt_vc_json`) |
-| `/oidc4vci/jwks.json` | GET | Issuer JWK set used to verify signed responses |
-| `/oidc4vp/requests/{requestId}` | GET | Signed OIDC4VP request object (JWT) |
-| `/oidc4vp/responses` | POST (form) | Process wallet presentations, mint authorization code |
-| `/oidc4vp/jwks.json` | GET | Verifier JWKS for wallets validating request objects |
-| `/oauth2/token` | POST (form) | Exchange verifier authorization code for access token |
-| `/api/credentials/templates` | GET | List credential templates exposed by the portal |
-| `/api/credentials/issue` | POST | Issue mock credential + QR seed for demos |
-| `/api/verification/presentations` | POST | Verify credential presentations programmatically |
-| `/api/onboarding/*` | GET/POST | Manage onboarding QR rotation and acknowledgments |
-| `/api/tenants` | GET/POST | Simple tenant registry backed by MongoDB |
-| `/spid/metadata` | GET | Export SPID Service Provider metadata |
+| `/oidc4vp/requests/{requestId}` | `GET` | Request object for a wallet presentation flow |
+| `/oidc4vp/responses` | `POST` | Wallet-submitted VP response |
+| `/oidc4vp/jwks.json` | `GET` | Verifier JWKS |
+| `/oauth2/token` | `POST` | Exchange verifier auth code for access token |
 
-The sample verifier client consumes `/oauth2/token` through the SDK; other APIs are surfaced by the Angular portal.
+### Platform APIs
 
-## Testing & Quality Gates
+| Endpoint | Method | Purpose |
+| --- | --- | --- |
+| `/api/credentials/templates` | `GET` | List credential templates |
+| `/api/credentials/issue` | `POST` | Demo issuance helper |
+| `/api/verification/presentations` | `POST` | Programmatic verification endpoint |
+| `/api/onboarding/*` | `GET/POST` | Onboarding state and acknowledgements |
+| `/api/tenants` | `GET/POST` | Tenant registration and listing |
+| `/spid/metadata` | `GET` | Export SPID metadata |
 
-- **Issuer portal backend:** `mvn test` (unit + integration scaffolding) and `mvn verify` for the full build.
-- **Issuer portal frontend:** `npm test`, `npm run lint`, `npm run build`.
-- **Client application backend:** `mvn -f backend/pom.xml test`.
-- **Client application frontend:** `npm test`, `npm run lint` inside `frontend/`.
-- **SDK:** `npm run lint` and `npm run build` (`tsup` checks types). Add unit tests under `src/__tests__/` and run with `npm test` when configured.
-- **Wallet:** `npm test`, `npm run lint`. End-to-end/device tests can be executed via Capacitor once configured.
+### Admin APIs
 
-CI/CD pipelines can stitch these commands together; each sub-project is self-contained so you can run only the modules you touch.
+Admin features are exposed under `controller/admin` and support:
 
-## Troubleshooting Cheatsheet
+- admin authentication,
+- tenant administration,
+- client administration,
+- presentation definition administration.
 
-- **Mongo connection refused:** ensure the Docker container is running or point `SPRING_DATA_MONGODB_URI` at a live instance.
-- **Angular CLI errors during Maven build:** rerun the corresponding `mvn generate-resources` to reinstall the local Node runtime managed by `frontend-maven-plugin`.
-- **Wallet cannot complete credential grant:** confirm the issuer base URL (`app.issuer.endpoint`) matches the publicly reachable ngrok domain and that the signing keys align with published JWKS.
-- **Verifier flow stuck after QR scan:** check `issuer.out` for OIDC4VP nonce/state mismatches and confirm the SDK `redirectUri` matches the one registered in the portal.
-- **SPID integration failures:** enable DEBUG logging (`org.springframework.security.saml2=DEBUG`, `org.opensaml=DEBUG`) and capture the SAML response using `src/test/java/com/izylife/ssi/tools/VerifySpidResponse`.
-- **Token refresh not happening in the client SPA:** verify `refreshTokens=true` and that refresh tokens are issued by `/oauth2/token`. The SDK logs `token_expired` events when it cannot refresh.
+## Project Governance
 
-## Additional Resources
+The repository now includes the standard project governance documents at root:
 
-- `ssi-issuer-verifier/README.md`, `ssi-client-application/README.md`, `ssi-client-lib/README.md`, `ssi-wallet/README.md` — detailed module-level docs.
-- `brochure-ssi-izylife.pdf` — high-level presentation you can share with stakeholders.
-- `ssi-wallet/docs/spring-issuer-credential.md` — in-depth tutorial for implementing the `/credential` endpoint with Nimbus JOSE.
-- `ssi-wallet/docs/ionic-dev.md` — step-by-step Ionic debugging and QR scanning guidance.
+- `LICENSE`
+- `CODE_OF_CONDUCT.md`
+- `CONTRIBUTING.md`
 
-For questions or new feature ideas, open issues directly in this repository so discussions stay tied to the relevant component.
+The repository root is licensed under `AGPL-3.0-only`, except where a
+subdirectory explicitly ships its own license file.
+
+The contribution policy is explicit: if someone modifies or improves the code,
+the work is only considered a valid contribution after it has been committed and
+pushed to a remote branch. That is a project rule documented in
+`CONTRIBUTING.md`.
+
+One practical constraint remains: Git cannot force a remote push purely through
+files committed inside the repository. To enforce that rule in practice, the
+hosting platform should also enable:
+
+- protected branches,
+- pull requests as the default merge path,
+- required CI checks,
+- restricted direct pushes to the main branch.
+
+## Development Notes
+
+### Frontend Development
+
+- `ssi-issuer-verifier/frontend` contains the Angular operator UI.
+- `ssi-client-application/frontend` contains the Angular verifier sample UI.
+- `ssi-wallet/mobile-app` contains the Ionic wallet UI.
+
+These frontends are intentionally separate because they represent different actors and trust boundaries.
+
+### Packaging Strategy
+
+- `ssi-issuer-verifier` packages its Angular build into one Spring Boot JAR.
+- `ssi-client-application` packages its Angular build into the backend static resources.
+- `ssi-client-lib` produces reusable npm bundles instead of a server artifact.
+- `ssi-wallet` produces a web build and can be synchronized into native shells via Capacitor.
+
+### Keycloak Presentation Definitions
+
+The issuer/verifier platform can source the active OIDC4VP presentation definition from Keycloak instead of only using the bundled `staff-credential.json`.
+
+That integration exists so presentation requirements can be managed operationally without rebuilding the Spring Boot service.
+
+### SPID Support
+
+SPID support is optional and only affects operator authentication in the issuer/verifier platform. It does not replace the wallet or verifier protocol flows.
+
+## Troubleshooting
+
+| Problem | Likely Cause | What To Check |
+| --- | --- | --- |
+| Wallet cannot obtain a credential | Issuer endpoint mismatch or unreachable public URL | `app.issuer.endpoint`, ngrok/public hostname, issuer metadata |
+| Wallet cannot submit presentation | Request object or response URI mismatch | verifier endpoint, request URI, `response_mode`, nonce/state values |
+| Client app never becomes authenticated | Redirect URI or `client_id_scheme` mismatch | Angular app config in `ssi-client-application`, backend logs in `ssi-issuer-verifier` |
+| Frontend build missing from Spring app | Angular build output not copied into static resources | Maven `generate-resources` / `package` step |
+| Mongo connection errors | Database not running or wrong URI | `SPRING_DATA_MONGODB_URI` |
+| SPID login problems | SAML metadata or signing cert/key mismatch | `app.spid.*`, metadata export, DEBUG SAML logs |
+| Token refresh not happening | Missing refresh token or refresh timing config | SDK config and `/oauth2/token` behavior |
+
+## Related Module READMEs
+
+Each module also has its own README:
+
+- `ssi-issuer-verifier/README.md`
+- `ssi-client-application/README.md`
+- `ssi-client-lib/README.md`
+- `ssi-wallet/README.md`
+
+Those files are useful when you are working inside one module. This root README is the system-level view that explains how the modules relate to each other.
