@@ -1,0 +1,15 @@
+# Keep GitHub language detection focused on source code, not vendored runtimes
+# or generated artifacts.
+
+*.lock linguist-generated=true
+package-lock.json linguist-generated=true
+
+**/dist/** linguist-generated=true
+**/build/** linguist-generated=true
+**/coverage/** linguist-generated=true
+**/target/** linguist-generated=true
+
+ssi-client-application/frontend/node/** linguist-vendored=true
+ssi-issuer-verifier/frontend/node/** linguist-vendored=true
+
+**/node_modules/** linguist-vendored=true
