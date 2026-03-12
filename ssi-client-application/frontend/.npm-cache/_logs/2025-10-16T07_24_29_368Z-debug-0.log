@@ -1,0 +1,42 @@
+0 verbose cli /home/gcassata/.nvm/versions/node/v22.12.0/bin/node /home/gcassata/.nvm/versions/node/v22.12.0/bin/npm
+1 info using npm@10.9.0
+2 info using node@v22.12.0
+3 silly config load:file:/home/gcassata/.nvm/versions/node/v22.12.0/lib/node_modules/npm/npmrc
+4 silly config load:file:/home/gcassata/gitrepos/ssi/client-application/frontend/.npmrc
+5 silly config load:file:/home/gcassata/.npmrc
+6 silly config load:file:/home/gcassata/.nvm/versions/node/v22.12.0/etc/npmrc
+7 verbose title npm install
+8 verbose argv "install" "--prefer-offline" "--no-audit"
+9 verbose logfile logs-max:10 dir:/home/gcassata/gitrepos/ssi/client-application/frontend/.npm-cache/_logs/2025-10-16T07_24_29_368Z-
+10 verbose logfile /home/gcassata/gitrepos/ssi/client-application/frontend/.npm-cache/_logs/2025-10-16T07_24_29_368Z-debug-0.log
+11 silly logfile done cleaning log files
+12 http fetch GET https://registry.npmjs.org/npm attempt 1 failed with EAI_AGAIN
+13 silly packumentCache heap:4345298944 maxSize:1086324736 maxEntrySize:543162368
+14 silly idealTree buildDeps
+15 silly fetch manifest @ssi/issuer-auth-client@file:../../ssi-client-lib/ssi-issuer-auth-client-0.1.1.tgz
+16 silly fetch manifest @angular/common@^20.1.0
+17 silly packumentCache full:https://registry.npmjs.org/@angular%2fcommon cache-miss
+18 http fetch GET https://registry.npmjs.org/@angular%2fcommon attempt 1 failed with EAI_AGAIN
+19 http fetch GET https://registry.npmjs.org/npm attempt 2 failed with EAI_AGAIN
+20 http fetch GET https://registry.npmjs.org/@angular%2fcommon attempt 2 failed with EAI_AGAIN
+21 http fetch GET https://registry.npmjs.org/npm attempt 3 failed with EAI_AGAIN
+22 http fetch GET https://registry.npmjs.org/@angular%2fcommon attempt 3 failed with EAI_AGAIN
+23 silly fetch manifest @angular/common@>=16 <21
+24 silly packumentCache full:https://registry.npmjs.org/@angular%2fcommon cache-miss
+25 http fetch GET https://registry.npmjs.org/@angular%2fcommon attempt 1 failed with EAI_AGAIN
+26 http fetch GET https://registry.npmjs.org/@angular%2fcommon attempt 2 failed with EAI_AGAIN
+27 http fetch GET https://registry.npmjs.org/@angular%2fcommon attempt 3 failed with EAI_AGAIN
+28 silly fetch manifest @angular/core@^20.1.0
+29 silly packumentCache full:https://registry.npmjs.org/@angular%2fcore cache-miss
+30 http fetch GET https://registry.npmjs.org/@angular%2fcore attempt 1 failed with EAI_AGAIN
+31 http fetch GET https://registry.npmjs.org/@angular%2fcore attempt 2 failed with EAI_AGAIN
+32 http fetch GET https://registry.npmjs.org/@angular%2fcore attempt 3 failed with EAI_AGAIN
+33 silly fetch manifest @angular/core@>=16 <21
+34 silly packumentCache full:https://registry.npmjs.org/@angular%2fcore cache-miss
+35 http fetch GET https://registry.npmjs.org/@angular%2fcore attempt 1 failed with EAI_AGAIN
+36 http fetch GET https://registry.npmjs.org/@angular%2fcore attempt 2 failed with EAI_AGAIN
+37 http fetch GET https://registry.npmjs.org/@angular%2fcore attempt 3 failed with EAI_AGAIN
+38 silly fetch manifest rxjs@~7.8.0
+39 silly packumentCache full:https://registry.npmjs.org/rxjs cache-miss
+40 http fetch GET https://registry.npmjs.org/rxjs attempt 1 failed with EAI_AGAIN
+41 http fetch GET https://registry.npmjs.org/rxjs attempt 2 failed with EAI_AGAIN
