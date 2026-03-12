@@ -1,0 +1,40 @@
+<main class="login">
+  <section class="login__panel">
+    <header class="login__header">
+      <h1>Izylife Admin Console</h1>
+      <p>Sign in with the administrator account to manage tenants, clients, and presentation definitions.</p>
+    </header>
+
+    <form [formGroup]="loginForm" (ngSubmit)="submit()" novalidate>
+      <div class="field">
+        <label for="admin-username">Username</label>
+        <input
+          id="admin-username"
+          type="text"
+          autocomplete="username"
+          formControlName="username"
+          [class.invalid]="loginForm.controls.username.invalid && loginForm.controls.username.touched"
+        >
+      </div>
+
+      <div class="field">
+        <label for="admin-password">Password</label>
+        <input
+          id="admin-password"
+          type="password"
+          autocomplete="current-password"
+          formControlName="password"
+          [class.invalid]="loginForm.controls.password.invalid && loginForm.controls.password.touched"
+        >
+      </div>
+
+      <p *ngIf="error" class="login__error">{{ error }}</p>
+
+      <button type="submit" [disabled]="loading">
+        {{ loading ? 'Signing in…' : 'Sign in' }}
+      </button>
+    </form>
+
+    <p class="login__hint">Default credentials: <code>admin / admin</code></p>
+  </section>
+</main>
