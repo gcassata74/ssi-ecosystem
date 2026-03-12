@@ -1,0 +1,52 @@
+name: Minimal CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: minimal-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  minimal-ci:
+    name: Minimal CI
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: ssi-client-lib/package-lock.json
+
+      - name: SDK install dependencies
+        working-directory: ssi-client-lib
+        run: npm ci
+
+      - name: SDK type check
+        working-directory: ssi-client-lib
+        run: npm run lint
+
+      - name: SDK build
+        working-directory: ssi-client-lib
+        run: npm run build
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Run minimal backend tests
+        working-directory: ssi-client-application/backend
+        run: mvn -B -q test
