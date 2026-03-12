@@ -313,7 +313,7 @@ Without this module, the repo would only show the platform side. This project pr
 flowchart LR
     A[Angular app] --> B[provideSsiAuth]
     B --> C[SsiAuthService]
-    C --> D[beginVerifierFlow()]
+    C --> D["beginVerifierFlow()"]
     D --> E[Redirect to ssi-issuer-verifier]
     E --> F[Return with code]
     F --> G[Token exchange via SDK]
@@ -335,6 +335,39 @@ This is the reusable integration layer. It packages the auth and redirect behavi
 | `src/angular/interceptor.ts` | Optional `HttpClient` interceptor that injects bearer tokens. |
 | `src/angular/tokens.ts` | Angular DI tokens. |
 | `src/angular/index.ts` | `provideSsiAuth()` entry point. |
+
+#### Installation And Consumption
+
+The library is published as a standard npm package shape and can be consumed in
+two common ways inside this mono-repo:
+
+1. published package consumption,
+2. local tarball consumption for coordinated development with the sample client.
+
+Install from npm:
+
+```bash
+npm install '@izylife/ssi-auth-client'
+```
+
+For local development inside this repository:
+
+```bash
+cd ssi-client-lib
+npm install
+npm run build
+npm pack
+```
+
+That produces a tarball which can be referenced by another frontend package.
+The sample client application already demonstrates this model through a local
+file dependency in `ssi-client-application/frontend/package.json`.
+
+Peer dependencies are only needed when you use the Angular integration:
+
+- `@angular/core`
+- `@angular/common`
+- `rxjs`
 
 #### Core Responsibilities
 
@@ -363,6 +396,55 @@ This is the reusable integration layer. It packages the auth and redirect behavi
    - `provideSsiAuth()` wires the client into Angular dependency injection,
    - `SsiAuthService` exposes `authStatus$` and `tokens$`,
    - `SsiAuthInterceptor` can attach bearer tokens to outgoing HTTP calls.
+
+#### Typical Angular Integration
+
+The intended Angular bootstrap model is:
+
+```ts
+import { provideHttpClient, withInterceptorsFromDi } from '@angular/common/http';
+import { provideSsiAuth } from '@izylife/ssi-auth-client/angular';
+
+provideHttpClient(withInterceptorsFromDi());
+
+provideSsiAuth({
+  config: {
+    baseUrl: 'https://issuer.example.com',
+    clientId: 'ssi-portal-ui',
+    redirectUri: `${window.location.origin}/auth/callback`,
+    scopes: ['openid', 'profile', 'ssi:presentations'],
+    refreshSkewMs: 60_000
+  },
+  initOptions: {
+    onLoad: 'check-sso',
+    restoreOriginalUri: true
+  },
+  includeHttpInterceptor: true
+});
+```
+
+In application code, `SsiAuthService` is the normal façade used by Angular
+components. It exposes auth state streams, tokens, and the helper methods that
+delegate to the core client.
+
+#### API Surface Summary
+
+Core client highlights:
+
+- `init()`
+- `login()`
+- `beginVerifierFlow()`
+- `logout()`
+- `getAccessToken()`
+- `getIdToken()`
+- `fetchWithAuth()`
+- lifecycle events through `on(...)`
+
+Angular helper highlights:
+
+- `provideSsiAuth(...)`
+- `SsiAuthService`
+- `SsiAuthInterceptor`
 
 #### Why It Matters
 
@@ -409,6 +491,22 @@ This module is the holder side of the demo. It receives credentials and later pr
 | `mobile-app/src/app/services/biometric.guard.ts` | Route guard for biometric-protected sections. |
 | `docs/` | Supporting implementation notes and development guides. |
 
+#### Prerequisites
+
+For wallet development in general:
+
+- Node.js 18+
+- npm 10+
+- Ionic CLI installed globally: `npm install -g @ionic/cli`
+
+For Android specifically:
+
+- Android Studio
+- Android SDKs installed through Android Studio
+- `ANDROID_HOME` configured
+- Android `platform-tools` added to `PATH`
+- an Android emulator or USB-debuggable device when running on hardware
+
 #### Wallet Responsibilities
 
 1. QR scanning
@@ -436,6 +534,104 @@ This module is the holder side of the demo. It receives credentials and later pr
    - creates a `did:key` identifier from a P-256 public key,
    - stores DID and credentials using secure storage plugins when available,
    - falls back to in-memory behavior if secure storage is unavailable.
+
+#### Wallet Installation
+
+Bootstrap the wallet from the wallet module root:
+
+```bash
+cd ssi-wallet/mobile-app
+npm install
+```
+
+This installs Angular, Ionic, Capacitor, secure-storage support, biometric
+helpers, and the testing/build tooling used by the app.
+
+For browser-only development:
+
+```bash
+cd ssi-wallet
+make serve
+```
+
+That starts the Ionic dev server on `http://localhost:8100`.
+
+#### Android Installation And First Run
+
+The Android path is the main native workflow documented by this repository.
+
+1. Install dependencies:
+
+   ```bash
+   cd ssi-wallet/mobile-app
+   npm install
+   ```
+
+2. Add the Android platform the first time:
+
+   ```bash
+   cd /home/gcassata/gitrepos/ssi-ecosystem/ssi-wallet
+   make add-android
+   ```
+
+3. Build the web assets:
+
+   ```bash
+   cd /home/gcassata/gitrepos/ssi-ecosystem/ssi-wallet
+   make build
+   ```
+
+4. Sync the built web assets into the native Android shell:
+
+   ```bash
+   cd /home/gcassata/gitrepos/ssi-ecosystem/ssi-wallet
+   make sync
+   ```
+
+5. Run on Android:
+
+   ```bash
+   cd /home/gcassata/gitrepos/ssi-ecosystem/ssi-wallet
+   make run-android
+   ```
+
+Important notes:
+
+- Capacitor commands must effectively run inside `ssi-wallet/mobile-app`, even
+  when you trigger them through the wallet `Makefile`.
+- If `npx cap add android` fails with an error like `could not determine
+  executable to run`, it usually means the command was run outside the Ionic app
+  directory or before installing dependencies.
+- After every frontend code change intended for the native app, run `make sync`
+  again before rebuilding or rerunning from Android Studio.
+
+#### Opening In Android Studio
+
+Once the Android platform has been added, you can open the generated native
+project directly from inside `mobile-app` with Capacitor tooling:
+
+```bash
+cd ssi-wallet/mobile-app
+npx cap open android
+```
+
+This is the right workflow when you need emulator management, native logs,
+signing configuration, or APK/AAB generation through Android Studio.
+
+#### Android Debugging Notes
+
+For Android WebView debugging:
+
+- enable USB debugging on the device or use an emulator,
+- use `adb` to confirm the device is visible,
+- if you need WebView inspection, follow `ssi-wallet/docs/ionic-dev.md` for
+  devtools socket forwarding and Chrome remote debugging.
+
+The repository documentation also notes a live-reload Android flow
+(`make run-android-live HOST_IP=<reachable-ip>`), but that target is currently
+described in the docs more explicitly than in the checked-in `Makefile`. Treat
+the non-live `make run-android` path as the canonical supported command in the
+current repository state.
 
 #### Why It Matters
 
@@ -600,6 +796,13 @@ The SDK accepts config for:
 Wallet runtime settings live under `mobile-app/src/environments/`.
 
 Most of the protocol behavior is currently driven by scanned payloads rather than a large static config object, which keeps the wallet flexible during demos.
+
+Android-specific setup still depends on local machine tooling:
+
+- Android Studio and SDK installation,
+- `ANDROID_HOME`,
+- `platform-tools` on `PATH`,
+- an emulator or device reachable through `adb`.
 
 ## Important Endpoints
 
