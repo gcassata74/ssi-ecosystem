@@ -1,3 +1,22 @@
+<!--
+  SSI Ecosystem
+  Copyright (c) 2026-present Izylife Solutions s.r.l.
+  Author: Giuseppe Cassata
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published
+  by the Free Software Foundation, either version 3 of the License,
+  or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+-->
+
 # Izylife SSI Ecosystem
 
 This repository is a mono-repo for an end-to-end Self-Sovereign Identity demo. It contains the issuer and verifier portal, a sample verifier-facing client application, a reusable authentication SDK, and a holder wallet. Together these modules demonstrate credential issuance with OIDC4VCI, credential presentation with OIDC4VP, verifier authorization, onboarding orchestration, and optional SPID-based operator login.
