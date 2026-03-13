@@ -1,3 +1,22 @@
+<!--
+  SSI Issuer Verifier
+  Copyright (c) 2026-present Izylife Solutions s.r.l.
+  Author: Giuseppe Cassata
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published
+  by the Free Software Foundation, either version 3 of the License,
+  or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+-->
+
 # Izylife SSI Issuer & Verifier Portal
 
 Combined Spring Boot + Angular application that enables Public Authorities (PAs) to issue and verify Self-Sovereign Identity (SSI) credentials within the Izylife ecosystem. The backend hosts REST APIs for credential issuing, tenant onboarding, and presentation verification, while the Angular SPA offers an operator-friendly UI. Maven orchestrates the entire build so a single command produces a runnable JAR containing the compiled frontend.
@@ -88,11 +107,21 @@ app:
     registration-id: spid
     entity-id: https://<your-domain>/spid
     assertion-consumer-service: https://<your-domain>/login/saml2/sso/spid
-    signing-certificate-location: file:/path/to/sp-signing-cert.pem
-    signing-key-location: file:/path/to/sp-signing-key.pem
+    signing-certificate-location: file:/secure/path/to/sp-signing-cert.pem
+    signing-key-location: file:/secure/path/to/sp-signing-key.pem
 ```
 
-The default metadata URL already points to `https://demo.spid.gov.it/metadata.xml`. Provide a valid signing certificate/key pair and ensure the ACS URL is reachable from the SPID network.
+The default metadata URL already points to `https://demo.spid.gov.it/metadata.xml`. Provide a valid signing certificate/key pair through `APP_SPID_SIGNING_CERTIFICATE_LOCATION` and `APP_SPID_SIGNING_KEY_LOCATION`, keep the private key outside the repository, and ensure the ACS URL is reachable from the SPID network.
+
+Example local setup:
+
+```bash
+openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out sp-signing-key.pem
+openssl req -new -x509 -key sp-signing-key.pem -out sp-signing-cert.pem -days 365 \
+  -subj "/CN=local-spid-dev"
+export APP_SPID_SIGNING_CERTIFICATE_LOCATION="file:$(pwd)/sp-signing-cert.pem"
+export APP_SPID_SIGNING_KEY_LOCATION="file:$(pwd)/sp-signing-key.pem"
+```
 
 Export the signed SP metadata required by the SPID validator once the backend is running:
 

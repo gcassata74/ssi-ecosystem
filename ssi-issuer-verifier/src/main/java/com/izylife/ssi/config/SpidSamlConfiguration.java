@@ -1,3 +1,22 @@
+/*
+ * SSI Issuer Verifier
+ * Copyright (c) 2026-present Izylife Solutions s.r.l.
+ * Author: Giuseppe Cassata
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 package com.izylife.ssi.config;
 
 import com.izylife.ssi.security.SpidAuthenticationSuccessHandler;
@@ -98,10 +117,11 @@ public class SpidSamlConfiguration {
         if (spid == null) {
             throw new IllegalStateException("SPID properties must be configured when app.spid.enabled=true");
         }
-        if (spid.getIdentityProviderMetadataLocation() == null) {
+        if (spid.getIdentityProviderMetadataLocation() == null || spid.getIdentityProviderMetadataLocation().isBlank()) {
             throw new IllegalStateException("app.spid.identity-provider-metadata-location must be supplied");
         }
-        if (spid.getSigningKeyLocation() == null || spid.getSigningCertificateLocation() == null) {
+        if (spid.getSigningKeyLocation() == null || spid.getSigningKeyLocation().isBlank()
+                || spid.getSigningCertificateLocation() == null || spid.getSigningCertificateLocation().isBlank()) {
             throw new IllegalStateException("Both app.spid.signing-key-location and app.spid.signing-certificate-location must be supplied");
         }
 

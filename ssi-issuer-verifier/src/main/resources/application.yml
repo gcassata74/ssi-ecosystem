@@ -1,3 +1,20 @@
+# SSI Issuer Verifier
+# Copyright (c) 2026-present Izylife Solutions s.r.l.
+# Author: Giuseppe Cassata
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License,
+# or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
 server:
   port: 9090
 
@@ -51,8 +68,8 @@ app:
     assertion-consumer-service: ${APP_SPID_ASSERTION_CONSUMER_SERVICE:${APP_VERIFIER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}/login/saml2/sso/spid}
     single-sign-on-service-location: ${APP_SPID_SINGLE_SIGN_ON_SERVICE_LOCATION:}
     single-logout-service-location: ${APP_SPID_SINGLE_LOGOUT_SERVICE_LOCATION:${APP_VERIFIER_ENDPOINT:https://izylife-issuer.eu.ngrok.io}/saml2/logout}
-    signing-certificate-location: ${APP_SPID_SIGNING_CERTIFICATE_LOCATION:classpath:spid/sp-signing-cert.pem}
-    signing-key-location: ${APP_SPID_SIGNING_KEY_LOCATION:classpath:spid/sp-signing-key.pem}
+    signing-certificate-location: ${APP_SPID_SIGNING_CERTIFICATE_LOCATION:}
+    signing-key-location: ${APP_SPID_SIGNING_KEY_LOCATION:}
     identity-provider-metadata-location: ${APP_SPID_IDP_METADATA_LOCATION:https://demo.spid.gov.it/metadata.xml}
     login-path: ${APP_SPID_LOGIN_PATH:/saml2/authenticate/spid}
     post-login-redirect: ${APP_SPID_POST_LOGIN_REDIRECT:/issuer}
