@@ -15,24 +15,38 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program. If not, see <https://www.gnu.org/licenses/>.
 
+# Stage 1: build and pack ssi-client-lib
+FROM node:20-alpine AS lib-build
+
+WORKDIR /ssi-client-lib
+
+COPY ssi-client-lib/package*.json ./
+RUN npm ci
+
+COPY ssi-client-lib .
+RUN npm run build && npm pack
+
+# Stage 2: build Spring Boot app (Angular included via frontend-maven-plugin)
 FROM maven:3.9.9-eclipse-temurin-17 AS build
 
 WORKDIR /workspace
 
-# Copy Maven project files first to leverage Docker layer caching
-COPY pom.xml .
-COPY backend/pom.xml backend/
-COPY frontend/pom.xml frontend/
+# Mirror the real filesystem layout so file: references in package.json resolve correctly:
+#   /workspace/ssi-client-lib/          ← packed tgz
+#   /workspace/ssi-client-application/  ← Maven project
+COPY --from=lib-build /ssi-client-lib/ssi-issuer-auth-client-0.1.5.tgz ssi-client-lib/ssi-issuer-auth-client-0.1.5.tgz
 
-# Copy the remaining source code
-COPY backend backend
-COPY frontend frontend
+COPY ssi-client-application/pom.xml ssi-client-application/pom.xml
+COPY ssi-client-application/backend/pom.xml ssi-client-application/backend/pom.xml
+COPY ssi-client-application/frontend/pom.xml ssi-client-application/frontend/pom.xml
 
-# Build the Spring Boot backend (Angular assets are produced via the Maven lifecycle)
-RUN --mount=type=cache,target=/root/.m2 mvn -pl backend -am -B clean package -DskipTests
+COPY ssi-client-application/backend ssi-client-application/backend
+COPY ssi-client-application/frontend ssi-client-application/frontend
 
-# Keep only the runnable JAR for the runtime image
-RUN JAR_PATH="$(find backend/target -maxdepth 1 -type f -name '*.jar' ! -name '*original*')" \
+# Build frontend first (ng build → dist/), then backend copies the dist into the JAR
+RUN cd ssi-client-application && mvn -B clean package -DskipTests
+
+RUN JAR_PATH="$(find ssi-client-application/backend/target -maxdepth 1 -type f -name '*.jar' ! -name '*original*')" \
     && cp "${JAR_PATH}" /workspace/app.jar
 
 FROM eclipse-temurin:17-jre
@@ -41,6 +55,6 @@ WORKDIR /app
 
 COPY --from=build /workspace/app.jar app.jar
 
-EXPOSE 9091
+EXPOSE 8080
 
 ENTRYPOINT ["java","-jar","app.jar"]

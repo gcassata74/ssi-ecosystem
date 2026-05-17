@@ -50,6 +50,31 @@
               <npmVersion>10.9.0</npmVersion>
             </configuration>
           </execution>
+          <!-- Build and pack ssi-client-lib so the file: reference in package.json resolves -->
+          <execution>
+            <id>npm-install-client-lib</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>initialize</phase>
+            <configuration>
+              <installDirectory>${project.basedir}</installDirectory>
+              <workingDirectory>${project.basedir}/../../ssi-client-lib</workingDirectory>
+              <arguments>install</arguments>
+            </configuration>
+          </execution>
+          <execution>
+            <id>npm-pack-client-lib</id>
+            <goals>
+              <goal>npm</goal>
+            </goals>
+            <phase>initialize</phase>
+            <configuration>
+              <installDirectory>${project.basedir}</installDirectory>
+              <workingDirectory>${project.basedir}/../../ssi-client-lib</workingDirectory>
+              <arguments>pack</arguments>
+            </configuration>
+          </execution>
           <execution>
             <id>npm-install</id>
             <goals>

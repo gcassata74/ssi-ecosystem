@@ -1,0 +1,58 @@
+# SSI Verifier
+# Copyright (c) 2026-present Izylife Solutions s.r.l.
+# Author: Giuseppe Cassata
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Affero General Public License as published
+# by the Free Software Foundation, either version 3 of the License,
+# or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the GNU Affero General Public License for more details.
+#
+# You should have received a copy of the GNU Affero General Public License
+# along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+server:
+  port: 8080
+
+app:
+  verifier:
+    endpoint: ${APP_VERIFIER_ENDPOINT:https://izylife-verifier.eu.ngrok.io}
+    challenge: demo-challenge
+    client-id: ${APP_VERIFIER_ENDPOINT:https://izylife-verifier.eu.ngrok.io}/oidc4vp/responses
+    client-id-scheme: redirect_uri
+    response-mode: direct_post
+    request-audience: https://self-issued.me/v2
+    presentation-definition-id: staff-credential
+    signing-key:
+      kid: demo-verifier-key
+      kty: EC
+      crv: P-256
+      x: hVx-X9SsBBdC7TEzEo0mr5JvDifiW8ukP-dtmzYn1gs
+      y: 0bYC51lu9R37eLSgtdK9gQLxjYMNgNcHapcq8xZ9YjI
+      d: pSxjopWQyhwMpCpJ9OJ4uRi41-0usfuzEHhLul1PccE
+      alg: ES256
+  cors:
+    allowed-origins:
+      - http://localhost:4200
+      - http://localhost:8080
+      - https://staff-credentials.com
+      - https://wallet.staff-credentials.com
+      - https://*.staff-credentials.com
+      - https://*.ngrok-free.app
+      - https://*.ngrok-free.dev
+      - https://*.ngrok.io
+    allow-credentials: false
+
+spring:
+  data:
+    mongodb:
+      uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/ssi-verifier}
+      database: ${SPRING_DATA_MONGODB_DATABASE:ssi-verifier}
+
+logging:
+  level:
+    com.izylife.ssi: DEBUG

@@ -30,6 +30,7 @@
 **/.settings/
 
 **/node_modules/
+**/node/
 **/dist/
 **/.angular/
 **/.ionic/
@@ -50,3 +51,5 @@
 
 *.swp
 *.swo
+
+.env

@@ -1,5 +1,5 @@
 {
-  "name": "@izylife/ssi-auth-client",
+  "name": "@ssi/issuer-auth-client",
   "version": "0.1.5",
   "description": "Client library to integrate SSI issuer/verifier authentication into JavaScript and Angular apps.",
   "keywords": [
