@@ -53,3 +53,6 @@
 *.swo
 
 .env
+
+.claude/
+**/*.tgz
