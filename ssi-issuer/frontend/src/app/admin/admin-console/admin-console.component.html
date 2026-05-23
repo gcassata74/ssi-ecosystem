@@ -171,6 +171,68 @@
         <p class="panel__empty">Select a client to manage presentation definitions.</p>
       </section>
     </ng-template>
+    <section class="panel panel--realm-ssi">
+      <header class="panel__header">
+        <div>
+          <h2>Realm SSI Config</h2>
+          <p class="panel__helper">DID:key e claim mapping del realm Keycloak.</p>
+        </div>
+      </header>
+
+      <div class="realm-did-section">
+        <h3>DID:key del realm</h3>
+        <p *ngIf="realmDidLoading" class="panel__empty">Caricamento…</p>
+        <div *ngIf="!realmDidLoading && realmDid" class="did-display">
+          <code class="did-value">{{ realmDid.did }}</code>
+        </div>
+        <p *ngIf="!realmDidLoading && !realmDid" class="panel__empty">
+          Nessun DID configurato per questo realm.
+        </p>
+        <button type="button" class="panel__action" [disabled]="realmDidGenerating" (click)="generateDid()">
+          {{ realmDidGenerating ? 'Generazione…' : (realmDid ? 'Rigenera DID:key' : 'Genera DID:key') }}
+        </button>
+      </div>
+
+      <div class="claim-config-section">
+        <header class="panel__header">
+          <h3>Claim mapping</h3>
+          <button type="button" class="panel__action" (click)="addClaimRow()">+ Aggiungi</button>
+        </header>
+        <p *ngIf="claimConfigLoading" class="panel__empty">Caricamento…</p>
+        <table *ngIf="!claimConfigLoading && claimMappings.length" class="claim-table">
+          <thead>
+            <tr>
+              <th>Claim Keycloak</th>
+              <th>Claim credenziale</th>
+              <th>Obbligatorio</th>
+              <th>Azioni</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of claimMappings; let i = index">
+              <td>
+                <input type="text" [(ngModel)]="claimMappings[i].keycloakClaim" placeholder="es. given_name" [attr.aria-label]="'Claim Keycloak riga ' + (i + 1)" />
+              </td>
+              <td>
+                <input type="text" [(ngModel)]="claimMappings[i].credentialClaim" placeholder="es. givenName" [attr.aria-label]="'Claim credenziale riga ' + (i + 1)" />
+              </td>
+              <td class="center">
+                <input type="checkbox" [(ngModel)]="claimMappings[i].mandatory" [title]="'Obbligatorio riga ' + (i + 1)" />
+              </td>
+              <td>
+                <button type="button" class="link link--danger" (click)="removeClaimRow(i)">Rimuovi</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p *ngIf="!claimConfigLoading && !claimMappings.length" class="panel__empty">
+          Nessun mapping configurato. Clicca "+ Aggiungi" per iniziare.
+        </p>
+        <button type="button" class="panel__action" [disabled]="claimConfigSaving" (click)="saveClaimConfig()">
+          {{ claimConfigSaving ? 'Salvataggio…' : 'Salva claim mapping' }}
+        </button>
+      </div>
+    </section>
   </div>
 
   <section class="definition-editor" *ngIf="definitionEditorOpen">

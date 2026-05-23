@@ -1,0 +1,117 @@
+<!--
+  SSI Verifier
+  Copyright (c) 2026-present Izylife Solutions s.r.l.
+  Author: Giuseppe Cassata
+
+  This program is free software: you can redistribute it and/or modify
+  it under the terms of the GNU Affero General Public License as published
+  by the Free Software Foundation, either version 3 of the License,
+  or (at your option) any later version.
+
+  This program is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+  See the GNU Affero General Public License for more details.
+
+  You should have received a copy of the GNU Affero General Public License
+  along with this program. If not, see <https://www.gnu.org/licenses/>.
+-->
+
+<div class="portal-layout">
+
+  <header class="portal-header">
+    <div class="portal-header__inner">
+      <div class="portal-header__logo">
+        <span class="portal-header__name">Izylife Platform</span>
+      </div>
+      <span class="portal-header__badge">Portale Personale</span>
+    </div>
+  </header>
+
+  <main class="portal-main">
+
+    <!-- Landing -->
+    <div *ngIf="state === 'landing'" class="card card--center">
+      <div class="card__icon">🔐</div>
+      <h2 class="card__title">Accesso Personale</h2>
+      <p class="card__desc">
+        Per accedere al portale è necessario identificarsi tramite
+        la propria <strong>credenziale digitale</strong> presentandola
+        con il wallet SSI.
+      </p>
+      <button class="btn btn--primary" type="button" (click)="startVerification()">
+        Accedi con SSI Credential
+      </button>
+    </div>
+
+    <!-- Loading -->
+    <div *ngIf="state === 'loading'" class="card card--center">
+      <div class="spinner"></div>
+      <p class="card__desc">Generazione QR in corso…</p>
+    </div>
+
+    <!-- QR scan -->
+    <div *ngIf="state === 'qr'" class="card">
+      <h2 class="card__title">Scansiona con il tuo wallet</h2>
+      <p class="card__desc">
+        Apri la tua app SSI wallet e scansiona il codice per presentare
+        la tua <strong>Staff Credential</strong>.
+      </p>
+
+      <div *ngIf="qr?.qrCodeImageDataUrl" class="qr-wrapper">
+        <img [src]="qr!.qrCodeImageDataUrl" alt="QR di verifica SSI" />
+      </div>
+
+      <p *ngIf="qr?.helperText" class="helper-text">{{ qr!.helperText }}</p>
+
+      <details *ngIf="qr?.qrCodePayload" class="payload-details">
+        <summary>Mostra payload</summary>
+        <pre class="payload"><code>{{ qr!.qrCodePayload }}</code></pre>
+      </details>
+
+      <div class="waiting-indicator">
+        <span class="dot-pulse"></span>
+        In attesa della presentazione…
+      </div>
+
+      <button class="btn btn--ghost" type="button" (click)="reset()">Annulla</button>
+    </div>
+
+    <!-- Success -->
+    <div *ngIf="state === 'success'" class="card card--success">
+      <div class="card__icon">✅</div>
+      <h2 class="card__title">Accesso effettuato</h2>
+      <p class="card__desc success-msg">
+        La tua identità è stata verificata con successo.
+      </p>
+
+      <div *ngIf="verifiedCredential" class="credential-box">
+        <div *ngIf="verifiedCredential.issuerName || verifiedCredential.issuerId" class="credential-issuer">
+          <span class="label">Emesso da:</span>
+          <span>{{ verifiedCredential.issuerName || verifiedCredential.issuerId }}</span>
+        </div>
+        <dl *ngIf="credentialSubjectEntries.length" class="credential-subject">
+          <div *ngFor="let entry of credentialSubjectEntries" class="credential-subject__row">
+            <dt>{{ entry.key }}</dt>
+            <dd>{{ entry.value }}</dd>
+          </div>
+        </dl>
+      </div>
+
+      <button class="btn btn--ghost" type="button" (click)="reset()">Esci</button>
+    </div>
+
+    <!-- Error -->
+    <div *ngIf="state === 'error'" class="card card--error">
+      <div class="card__icon">⚠️</div>
+      <h2 class="card__title">Errore</h2>
+      <p class="card__desc">{{ errorMessage }}</p>
+      <button class="btn btn--primary" type="button" (click)="reset()">Riprova</button>
+    </div>
+
+  </main>
+
+  <footer class="portal-footer">
+    Powered by <strong>Izylife SSI Ecosystem</strong>
+  </footer>
+</div>

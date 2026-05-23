@@ -1,0 +1,198 @@
+{
+  "id": "izylife",
+  "realm": "izylife",
+  "displayName": "Izylife",
+  "enabled": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": false,
+  "bruteForceProtected": false,
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+
+  "eventsListeners": [
+    "jboss-logging",
+    "ssi-realm-init"
+  ],
+
+  "components": {
+    "org.keycloak.userprofile.UserProfileProvider": [
+      {
+        "name": "declarative-user-profile",
+        "providerId": "declarative-user-profile",
+        "subType": "anonymous",
+        "subComponents": {},
+        "config": {
+          "kc.user.profile.config": [
+            "{\"attributes\":[{\"name\":\"username\",\"displayName\":\"${username}\",\"validations\":{\"length\":{\"min\":3,\"max\":255},\"username-prohibited-characters\":{},\"up-username-not-idn-homograph\":{}},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"email\",\"displayName\":\"${email}\",\"validations\":{\"email\":{},\"length\":{\"max\":255}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"firstName\",\"displayName\":\"${firstName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"lastName\",\"displayName\":\"${lastName}\",\"validations\":{\"length\":{\"max\":255},\"person-name-prohibited-characters\":{}},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]}},{\"name\":\"codice_fiscale\",\"displayName\":\"Codice Fiscale\",\"validations\":{\"length\":{\"min\":16,\"max\":16},\"pattern\":{\"pattern\":\"^[A-Z]{6}[0-9]{2}[A-Z][0-9]{2}[A-Z][0-9]{3}[A-Z]$\",\"error-message\":\"Il codice fiscale deve essere di 16 caratteri nel formato standard\"}},\"annotations\":{\"inputType\":\"text\"},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"indirizzo\",\"displayName\":\"Indirizzo\",\"validations\":{\"length\":{\"min\":5,\"max\":255}},\"annotations\":{\"inputType\":\"text\"},\"required\":{\"roles\":[\"user\"]},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\",\"user\"]},\"multivalued\":false},{\"name\":\"employee_id\",\"displayName\":\"Employee ID\",\"validations\":{\"length\":{\"max\":50}},\"annotations\":{\"inputType\":\"text\"},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}},{\"name\":\"job_title\",\"displayName\":\"Job Title\",\"validations\":{\"length\":{\"max\":100}},\"annotations\":{\"inputType\":\"text\"},\"permissions\":{\"view\":[\"admin\",\"user\"],\"edit\":[\"admin\"]}}],\"groups\":[]}"
+          ]
+        }
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "ssi-issuer",
+      "name": "SSI Issuer",
+      "description": "Client OIDC per il flusso di credential offer dell'SSI Issuer",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "secret": "ssi-issuer-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "fullScopeAllowed": true,
+      "redirectUris": [
+        "http://localhost:9090/*",
+        "https://izylife-issuer.eu.ngrok.io/*"
+      ],
+      "webOrigins": [
+        "http://localhost:9090",
+        "https://izylife-issuer.eu.ngrok.io"
+      ],
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "employee-attrs"
+      ],
+      "optionalClientScopes": []
+    },
+    {
+      "clientId": "ssi-issuer-spa",
+      "name": "SSI Issuer SPA",
+      "description": "Public PKCE client per l'Angular SPA dell'SSI Issuer",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "authorizationServicesEnabled": false,
+      "fullScopeAllowed": true,
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      },
+      "redirectUris": [
+        "http://localhost:9090/*",
+        "https://izylife-issuer.eu.ngrok.io/*"
+      ],
+      "webOrigins": [
+        "http://localhost:9090",
+        "https://izylife-issuer.eu.ngrok.io"
+      ],
+      "defaultClientScopes": [
+        "openid",
+        "profile",
+        "email",
+        "employee-attrs"
+      ],
+      "optionalClientScopes": []
+    }
+  ],
+
+  "users": [
+    {
+      "username": "giuseppe.cassata",
+      "email": "giuseppe.cassata@izylife.example",
+      "firstName": "Giuseppe",
+      "lastName": "Cassata",
+      "enabled": true,
+      "emailVerified": true,
+      "attributes": {
+        "employee_id": ["IZY-OPS-001"],
+        "job_title": ["Public Authority Operator"],
+        "codice_fiscale": ["CSSGPP74A01D969Z"],
+        "indirizzo": ["Via Roma 1, 16121 Genova GE"]
+      },
+      "credentials": [
+        {
+          "type": "password",
+          "value": "password",
+          "temporary": false
+        }
+      ]
+    }
+  ],
+
+  "clientScopes": [
+    {
+      "name": "employee-attrs",
+      "description": "Espone gli attributi del dipendente nel token",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "true",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "name": "employee_id",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "employee_id",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "employee_id",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "job_title",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "job_title",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "job_title",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "codice_fiscale",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "codice_fiscale",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "codice_fiscale",
+            "jsonType.label": "String"
+          }
+        },
+        {
+          "name": "indirizzo",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-attribute-mapper",
+          "consentRequired": false,
+          "config": {
+            "userinfo.token.claim": "true",
+            "user.attribute": "indirizzo",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "indirizzo",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+
+  "defaultDefaultClientScopes": [
+    "employee-attrs"
+  ]
+}

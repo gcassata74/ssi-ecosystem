@@ -15,6 +15,8 @@ const verifierEndpoint = resolveVerifierEndpoint();
 
 export const environment = {
   production: true,
+  keycloakUrl: (globalThis as { APP_KEYCLOAK_URL?: string }).APP_KEYCLOAK_URL ?? 'http://localhost:8180',
+  keycloakClientId: (globalThis as { APP_KEYCLOAK_CLIENT_ID?: string }).APP_KEYCLOAK_CLIENT_ID ?? 'ssi-issuer-spa',
   spid: {
     entityId: verifierEndpoint ? `${verifierEndpoint}/spid` : undefined,
     authBaseUrl: 'https://spid.demo.gov.it/auth/login',

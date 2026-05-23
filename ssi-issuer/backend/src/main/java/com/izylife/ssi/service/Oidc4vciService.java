@@ -75,6 +75,12 @@ public class Oidc4vciService {
     }
 
     public CredentialOfferRecord createStaffCredentialOffer(StaffProfile profile) {
+        return createStaffCredentialOffer(profile, null, null);
+    }
+
+    public CredentialOfferRecord createStaffCredentialOffer(StaffProfile profile,
+                                                            String issuerDid,
+                                                            Map<String, Object> realmPrivateJwk) {
         String offerId = randomIdentifier();
         String issuerState = randomIdentifier();
         String preAuthorizedCode = randomIdentifier();
@@ -86,7 +92,9 @@ public class Oidc4vciService {
                 false,
                 List.of(STAFF_CREDENTIAL_CONFIGURATION_ID),
                 profile,
-                Instant.now()
+                Instant.now(),
+                issuerDid,
+                realmPrivateJwk
         );
         offersById.put(offerId, record);
         issuerStateIndex.put(issuerState, offerId);
@@ -220,19 +228,26 @@ public class Oidc4vciService {
         return metadata;
     }
 
-    public String buildStaffCredentialJwt(StaffProfile profile) {
+    public String buildStaffCredentialJwt(CredentialOfferRecord offer) {
+        StaffProfile profile = offer.profile();
         Map<String, Object> vc = buildStaffCredentialClaims(profile);
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         Instant expiresAt = now.plus(365, ChronoUnit.DAYS);
 
+        String effectiveIssuerId = offer.issuerDid() != null ? offer.issuerDid() : resolveCredentialIssuerId();
+
         JWTClaimsSet claims = new JWTClaimsSet.Builder()
                 .jwtID(UUID.randomUUID().toString())
-                .issuer(resolveCredentialIssuerId())
+                .issuer(effectiveIssuerId)
                 .subject(profile.subjectDid())
                 .issueTime(Date.from(now))
                 .expirationTime(Date.from(expiresAt))
                 .claim("vc", vc)
                 .build();
+
+        if (offer.realmPrivateJwk() != null && offer.issuerDid() != null) {
+            return issuerSigningService.sign(claims, offer.realmPrivateJwk(), offer.issuerDid());
+        }
 
         JWSHeader header = issuerSigningService.getHeaderTemplate();
         JWSSigner signer = issuerSigningService.getSigner();
@@ -368,7 +383,20 @@ public class Oidc4vciService {
                                          boolean userPinRequired,
                                          List<String> credentialConfigurationIds,
                                          StaffProfile profile,
-                                         Instant createdAt) {
+                                         Instant createdAt,
+                                         String issuerDid,
+                                         Map<String, Object> realmPrivateJwk) {
+
+        public CredentialOfferRecord(String offerId,
+                                     String issuerState,
+                                     String preAuthorizedCode,
+                                     boolean userPinRequired,
+                                     List<String> credentialConfigurationIds,
+                                     StaffProfile profile,
+                                     Instant createdAt) {
+            this(offerId, issuerState, preAuthorizedCode, userPinRequired,
+                    credentialConfigurationIds, profile, createdAt, null, null);
+        }
     }
 
     public record StaffProfile(String subjectDid,

@@ -25,6 +25,10 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
     this.updatePageTitle();
 
     this.updatesSub = this.onboardingService.updates().subscribe(update => {
+      if (update.step === 'ISSUER_OIDC_PROMPT' && update.actionUrl) {
+        window.location.href = update.actionUrl;
+        return;
+      }
       this.qr = update;
       this.loading = false;
       this.error = update.errorMessage ?? undefined;
@@ -40,11 +44,26 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
 
   get isIssuerStep(): boolean {
     const step = this.qr?.step;
-    return step === 'ISSUER_QR' || step === 'ISSUER_SPID_PROMPT';
+    return step === 'ISSUER_QR' || step === 'ISSUER_SPID_PROMPT' || step === 'ISSUER_OIDC_PROMPT';
   }
 
   get isSpidPrompt(): boolean {
     return this.qr?.step === 'ISSUER_SPID_PROMPT';
+  }
+
+  get isOidcPrompt(): boolean {
+    return this.qr?.step === 'ISSUER_OIDC_PROMPT';
+  }
+
+  get isLoginPrompt(): boolean {
+    return this.isSpidPrompt || this.isOidcPrompt;
+  }
+
+  get loginUrl(): string | undefined {
+    if (this.isOidcPrompt) {
+      return this.qr?.actionUrl ?? '/oauth2/authorization/keycloak';
+    }
+    return this.spidLoginUrl;
   }
 
   get credentialSubjectEntries(): Array<{ key: string; value: unknown }> {
@@ -64,6 +83,10 @@ export class OnboardingPageComponent implements OnInit, OnDestroy {
     this.error = undefined;
     this.onboardingService.fetchCurrent().subscribe({
       next: qr => {
+        if (qr.step === 'ISSUER_OIDC_PROMPT' && qr.actionUrl) {
+          window.location.href = qr.actionUrl;
+          return;
+        }
         this.qr = qr;
         this.loading = false;
         this.error = qr.errorMessage ?? undefined;

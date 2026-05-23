@@ -89,6 +89,14 @@ export class OnboardingService implements OnDestroy {
     );
   }
 
+  enroll(bearerToken: string): Observable<OnboardingQr> {
+    return this.http.post<unknown>('/api/onboarding/issuer/enroll', null, {
+      headers: { Authorization: `Bearer ${bearerToken}` }
+    }).pipe(
+      map(payload => this.normalizePayload(payload))
+    );
+  }
+
   updates(): Observable<OnboardingQr> {
     return this.updatesSubject.asObservable();
   }
@@ -177,6 +185,10 @@ export class OnboardingService implements OnDestroy {
 
   private buildQueryParams(): HttpParams {
     let params = new HttpParams();
+    const realm = this.getLaunchParam('realm');
+    if (realm) {
+      params = params.set('realm', realm);
+    }
     const redirectUri = this.getLaunchParam('redirect_uri');
     if (redirectUri) {
       params = params.set('redirect_uri', redirectUri);
@@ -228,7 +240,7 @@ export class OnboardingService implements OnDestroy {
     const qrCodeImageDataUrl = this.extractString(source, ['qrCodeImageDataUrl', 'qrImageDataUrl']);
     const qrCodePayload = this.extractString(source, ['qrCodePayload', 'payload']);
 
-    const qrDataRequired = step !== 'ISSUER_SPID_PROMPT';
+    const qrDataRequired = step !== 'ISSUER_SPID_PROMPT' && step !== 'ISSUER_OIDC_PROMPT';
     if (qrDataRequired && (!qrCodeImageDataUrl || !qrCodePayload)) {
       throw new Error('Missing QR code data in onboarding payload');
     }

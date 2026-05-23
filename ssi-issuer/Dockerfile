@@ -29,6 +29,7 @@ COPY ssi-common/src ssi-common/src
 RUN mvn -B -f ssi-common/pom.xml install -DskipTests
 
 # Build ssi-issuer (sibling poms needed for reactor)
+COPY ssi-keycloak-provider/pom.xml ssi-keycloak-provider/pom.xml
 COPY ssi-verifier/pom.xml ssi-verifier/pom.xml
 COPY ssi-verifier/backend/pom.xml ssi-verifier/backend/pom.xml
 COPY ssi-issuer/pom.xml ssi-issuer/pom.xml

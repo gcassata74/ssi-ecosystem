@@ -109,7 +109,7 @@ public class Oidc4vciCredentialController {
             }
         }
 
-        String credentialJwt = oidc4vciService.buildStaffCredentialJwt(offer.profile());
+        String credentialJwt = oidc4vciService.buildStaffCredentialJwt(offer);
 
         Instant now = Instant.now();
         CredentialResponse response = new CredentialResponse();

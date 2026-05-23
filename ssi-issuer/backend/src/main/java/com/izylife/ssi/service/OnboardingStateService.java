@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -39,6 +40,7 @@ public class OnboardingStateService {
 
     public enum OnboardingStep {
         ISSUER_SPID_PROMPT,
+        ISSUER_OIDC_PROMPT,
         ISSUER_QR
     }
 
@@ -78,10 +80,18 @@ public class OnboardingStateService {
         return new OnboardingStatusResponse(currentStep.get().name(), issuerFlowState.get().name(), null, issuer);
     }
 
-    public OnboardingQrResponse getIssuerQr() {
+    public OnboardingQrResponse getIssuerQr(String realm) {
         OnboardingStep step = currentStep.get();
         if (step == OnboardingStep.ISSUER_SPID_PROMPT) {
             return buildSpidPrompt();
+        }
+        if (step == OnboardingStep.ISSUER_OIDC_PROMPT) {
+            return buildOidcPrompt(realm);
+        }
+        // Active credential offer (post-authentication) takes priority over config-driven prompts
+        CredentialOfferContext ctx = activeCredentialOffer.get();
+        if (ctx != null && oidc4vciService.findOfferById(ctx.offer().offerId()).isPresent()) {
+            return buildCredentialOfferQr();
         }
         boolean spidEnabled = Optional.ofNullable(appProperties.getSpid())
                 .map(AppProperties.SpidProperties::isEnabled)
@@ -89,23 +99,40 @@ public class OnboardingStateService {
         if (spidEnabled) {
             return buildSpidPrompt();
         }
+        boolean oidcEnabled = Optional.ofNullable(appProperties.getKeycloak())
+                .map(AppProperties.KeycloakProperties::isOidcEnabled)
+                .orElse(false);
+        if (oidcEnabled) {
+            return buildOidcPrompt(realm);
+        }
         return buildCredentialOfferQr();
     }
 
     public void promptIssuerEnrollment() {
         AppProperties.SpidProperties spidProperties = appProperties.getSpid();
-        if (spidProperties == null || !spidProperties.isEnabled()) {
-            CredentialOfferContext context = activeCredentialOffer.get();
-            if (context == null) {
-                activeCredentialOffer.compareAndSet(null, createCredentialOfferContext(buildDefaultStaffProfile()));
-            }
-            showIssuerCredentialOffer();
+        boolean oidcEnabled = Optional.ofNullable(appProperties.getKeycloak())
+                .map(AppProperties.KeycloakProperties::isOidcEnabled)
+                .orElse(false);
+
+        if (spidProperties != null && spidProperties.isEnabled()) {
+            currentStep.set(OnboardingStep.ISSUER_SPID_PROMPT);
+            issuerFlowState.set(IssuerFlowState.WAITING_FOR_WALLET);
+            activeCredentialOffer.set(null);
+            publishUpdate(OnboardingStep.ISSUER_SPID_PROMPT, buildSpidPrompt());
             return;
         }
-        currentStep.set(OnboardingStep.ISSUER_SPID_PROMPT);
-        issuerFlowState.set(IssuerFlowState.WAITING_FOR_WALLET);
-        activeCredentialOffer.set(null);
-        publishUpdate(OnboardingStep.ISSUER_SPID_PROMPT, buildSpidPrompt());
+        if (oidcEnabled) {
+            currentStep.set(OnboardingStep.ISSUER_OIDC_PROMPT);
+            issuerFlowState.set(IssuerFlowState.WAITING_FOR_WALLET);
+            activeCredentialOffer.set(null);
+            publishUpdate(OnboardingStep.ISSUER_OIDC_PROMPT, buildOidcPrompt(null));
+            return;
+        }
+        CredentialOfferContext context = activeCredentialOffer.get();
+        if (context == null) {
+            activeCredentialOffer.compareAndSet(null, createCredentialOfferContext(buildDefaultStaffProfile()));
+        }
+        showIssuerCredentialOffer();
     }
 
     public void showIssuerCredentialOffer() {
@@ -135,6 +162,34 @@ public class OnboardingStateService {
         showIssuerCredentialOffer();
     }
 
+    public void completeIssuerEnrollmentWithKeycloak(Map<String, Object> credentialSubject,
+                                                      String issuerDid,
+                                                      Map<String, Object> privateJwk) {
+        if (credentialSubject == null || issuerDid == null || privateJwk == null) {
+            return;
+        }
+        Oidc4vciService.StaffProfile profile = new Oidc4vciService.StaffProfile(
+                (String) credentialSubject.getOrDefault("id", issuerDid),
+                (String) credentialSubject.getOrDefault("familyName", ""),
+                (String) credentialSubject.getOrDefault("givenName", ""),
+                (String) credentialSubject.getOrDefault("role", ""),
+                (String) credentialSubject.getOrDefault("employeeNumber", ""),
+                (String) credentialSubject.get("email")
+        );
+        Oidc4vciService.CredentialOfferRecord offer =
+                oidc4vciService.createStaffCredentialOffer(profile, issuerDid, privateJwk);
+        try {
+            String helperText = String.format("issuer_state=%s | pre-authorized grant available", offer.issuerState());
+            String offerJson = objectMapper.writeValueAsString(oidc4vciService.buildCredentialOffer(offer));
+            String encoded = java.net.URLEncoder.encode(offerJson, StandardCharsets.UTF_8);
+            String qrPayload = "openid-credential-offer://?credential_offer=" + encoded;
+            activeCredentialOffer.set(new CredentialOfferContext(offer, profile, helperText, qrPayload));
+            showIssuerCredentialOffer();
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Unable to serialise credential offer", ex);
+        }
+    }
+
     public OnboardingStep getCurrentStep() {
         return currentStep.get();
     }
@@ -143,6 +198,9 @@ public class OnboardingStateService {
         OnboardingStep step = currentStep.get();
         if (step == OnboardingStep.ISSUER_SPID_PROMPT) {
             return buildSpidPrompt();
+        }
+        if (step == OnboardingStep.ISSUER_OIDC_PROMPT) {
+            return buildOidcPrompt(null);
         }
         return resolveConfiguredIssuerPayload()
                 .map(this::buildConfiguredIssuerQr)
@@ -197,6 +255,22 @@ public class OnboardingStateService {
         );
     }
 
+    private OnboardingQrResponse buildOidcPrompt(String realm) {
+        String effectiveRealm = (realm != null && !realm.isBlank())
+                ? realm
+                : Optional.ofNullable(appProperties.getKeycloak()).map(AppProperties.KeycloakProperties::getRealm).filter(r -> r != null && !r.isBlank()).orElse("master");
+        return new OnboardingQrResponse(
+                OnboardingStep.ISSUER_OIDC_PROMPT.name(),
+                "Login richiesto",
+                "Autenticati con Keycloak per generare l'offerta di credenziali.",
+                "Avvia l'autenticazione Keycloak per proseguire.",
+                null,
+                null,
+                "Entra con Keycloak",
+                "/oauth2/authorization/" + effectiveRealm
+        );
+    }
+
     private String resolveSpidLoginUrl(AppProperties.SpidProperties spid) {
         String rawPath = Optional.ofNullable(spid.getLoginPath()).filter(path -> !path.isBlank()).orElse("/saml2/authenticate/" + spid.getRegistrationId());
         if (rawPath.startsWith("http://") || rawPath.startsWith("https://")) {
@@ -226,10 +300,6 @@ public class OnboardingStateService {
     }
 
     private CredentialOfferContext createCredentialOfferContext(Oidc4vciService.StaffProfile profile) {
-        String issuerEndpoint = Optional.ofNullable(appProperties.getIssuer())
-                .map(AppProperties.IssuerProperties::getEndpoint)
-                .filter(v -> !v.isBlank())
-                .orElse("http://localhost:9090");
         Oidc4vciService.CredentialOfferRecord offer = oidc4vciService.createStaffCredentialOffer(profile);
         try {
             String helperText = String.format("issuer_state=%s | pre-authorized grant available", offer.issuerState());
@@ -262,7 +332,9 @@ public class OnboardingStateService {
 
     private void publishUpdate(OnboardingStep activeStep, OnboardingQrResponse stepQr) {
         OnboardingQrResponse issuer = buildIssuerState();
-        if (activeStep == OnboardingStep.ISSUER_SPID_PROMPT || activeStep == OnboardingStep.ISSUER_QR) {
+        if (activeStep == OnboardingStep.ISSUER_SPID_PROMPT
+                || activeStep == OnboardingStep.ISSUER_OIDC_PROMPT
+                || activeStep == OnboardingStep.ISSUER_QR) {
             issuer = stepQr;
         }
         OnboardingStatusResponse status = new OnboardingStatusResponse(

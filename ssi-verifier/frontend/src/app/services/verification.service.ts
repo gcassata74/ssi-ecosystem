@@ -195,6 +195,10 @@ export class VerificationService implements OnDestroy {
     if (state) {
       params = params.set('state', state);
     }
+    const realm = this.getLaunchParam('realm');
+    if (realm) {
+      params = params.set('realm', realm);
+    }
     return params;
   }
 

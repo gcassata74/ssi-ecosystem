@@ -30,6 +30,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -46,8 +47,9 @@ public class VerificationController {
     }
 
     @GetMapping("/qr")
-    public OnboardingQrResponse getVerifierQr() {
-        return verifierStateService.getCurrentQr();
+    public OnboardingQrResponse getVerifierQr(
+            @RequestParam(name = "realm", required = false) String realm) {
+        return verifierStateService.getCurrentQr(realm);
     }
 
     @PostMapping(path = "/presentations", consumes = MediaType.APPLICATION_JSON_VALUE)

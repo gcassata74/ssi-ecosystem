@@ -1,5 +1,25 @@
+/*
+ * SSI Issuer
+ * Copyright (c) 2026-present Izylife Solutions s.r.l.
+ * Author: Giuseppe Cassata
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
+import { KeycloakAuthService } from '../services/keycloak-auth.service';
 import { OnboardingQr, OnboardingService } from '../services/onboarding.service';
 
 @Component({
@@ -11,69 +31,65 @@ export class IssuerPageComponent implements OnInit, OnDestroy {
   loading = true;
   error?: string;
   qr?: OnboardingQr;
+  tokenClaims?: Record<string, unknown>;
   private updatesSub?: Subscription;
-  spidLoginUrl?: string;
 
-  constructor(private readonly onboardingService: OnboardingService) {}
+  constructor(
+    private readonly keycloakAuth: KeycloakAuthService,
+    private readonly onboardingService: OnboardingService
+  ) {}
 
-  ngOnInit(): void {
-    this.loadIssuerQr();
+  async ngOnInit(): Promise<void> {
+    this.tokenClaims = this.keycloakAuth.getTokenParsed();
 
     this.updatesSub = this.onboardingService.updates().subscribe(update => {
-      if (!update) {
-        return;
-      }
-      if (update.step === 'ISSUER_QR' || update.step === 'ISSUER_SPID_PROMPT') {
+      if (update.step === 'ISSUER_QR') {
         this.qr = update;
         this.loading = false;
         this.error = undefined;
-        this.spidLoginUrl = this.normalizeSpidLoginUrl(update.actionUrl);
       }
     });
+
+    this.onboardingService.connect();
+    await this.enroll();
   }
 
   ngOnDestroy(): void {
     this.updatesSub?.unsubscribe();
   }
 
-  get isSpidPrompt(): boolean {
-    return this.qr?.step === 'ISSUER_SPID_PROMPT';
+  get tokenClaimsJson(): string {
+    return this.tokenClaims ? JSON.stringify(this.tokenClaims, null, 2) : '';
   }
 
   get credentialSubjectEntries(): Array<{ key: string; value: unknown }> {
     const subject = this.qr?.credentialPreview?.subject;
-    if (!subject) {
-      return [];
-    }
+    if (!subject) return [];
     return Object.entries(subject).map(([key, value]) => ({ key, value }));
   }
 
-  retry(): void {
-    this.loadIssuerQr();
-  }
-
-  private loadIssuerQr(): void {
-    this.loading = true;
+  async retry(): Promise<void> {
     this.error = undefined;
-    this.onboardingService.fetchIssuer().subscribe({
-      next: qr => {
-        this.qr = qr;
-        this.loading = false;
-        this.spidLoginUrl = this.normalizeSpidLoginUrl(qr.actionUrl);
-      },
-      error: () => {
-        this.error = 'Unable to load the issuer onboarding resources. Please try again.';
-        this.loading = false;
-      }
-    });
+    await this.enroll();
   }
 
-  private normalizeSpidLoginUrl(actionUrl?: string): string | undefined {
-    if (!actionUrl) {
-      return undefined;
+  private async enroll(): Promise<void> {
+    this.loading = true;
+    try {
+      const token = await this.keycloakAuth.getToken();
+      this.onboardingService.enroll(token).subscribe({
+        next: qr => {
+          this.qr = qr;
+          this.loading = false;
+        },
+        error: () => {
+          this.error = 'Enrollment failed. Please try again.';
+          this.loading = false;
+        }
+      });
+    } catch {
+      this.error = 'Unable to obtain access token. Please refresh the page.';
+      this.loading = false;
     }
-
-    const trimmed = actionUrl.trim();
-    return trimmed.length > 0 ? trimmed : undefined;
   }
 }

@@ -1,0 +1,50 @@
+/*
+ * SSI Keycloak Provider
+ * Copyright (c) 2026-present Izylife Solutions s.r.l.
+ * Author: Giuseppe Cassata
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
+package com.izylife.ssi.keycloak;
+
+import org.keycloak.Config;
+import org.keycloak.models.KeycloakSession;
+import org.keycloak.models.KeycloakSessionFactory;
+import org.keycloak.services.resource.RealmResourceProvider;
+import org.keycloak.services.resource.RealmResourceProviderFactory;
+
+public class SsiRealmResourceProviderFactory implements RealmResourceProviderFactory {
+
+    public static final String PROVIDER_ID = "ssi-issuer";
+
+    @Override
+    public String getId() {
+        return PROVIDER_ID;
+    }
+
+    @Override
+    public RealmResourceProvider create(KeycloakSession session) {
+        return new SsiRealmResourceProvider(session);
+    }
+
+    @Override
+    public void init(Config.Scope config) {}
+
+    @Override
+    public void postInit(KeycloakSessionFactory factory) {}
+
+    @Override
+    public void close() {}
+}

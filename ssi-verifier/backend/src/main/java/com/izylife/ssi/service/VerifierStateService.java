@@ -88,8 +88,8 @@ public class VerifierStateService {
         return lastVerifiedCredential.get();
     }
 
-    public OnboardingQrResponse getCurrentQr() {
-        return buildCurrentVerifierQr(lastVerifiedCredential.get());
+    public OnboardingQrResponse getCurrentQr(String realm) {
+        return buildCurrentVerifierQr(lastVerifiedCredential.get(), realm);
     }
 
     private void publishVerifierQr() {
@@ -99,11 +99,11 @@ public class VerifierStateService {
 
     private OnboardingStatusResponse buildVerifierStatus() {
         CredentialPreviewDto preview = lastVerifiedCredential.get();
-        return new OnboardingStatusResponse("VP_REQUEST", "IDLE", buildCurrentVerifierQr(preview), null);
+        return new OnboardingStatusResponse("VP_REQUEST", "IDLE", buildCurrentVerifierQr(preview, null), null);
     }
 
-    private OnboardingQrResponse buildCurrentVerifierQr(CredentialPreviewDto preview) {
-        Oidc4VpRequestService.AuthorizationRequest authorization = oidc4VpRequestService.createAuthorizationRequest(null, null, null);
+    private OnboardingQrResponse buildCurrentVerifierQr(CredentialPreviewDto preview, String realm) {
+        Oidc4VpRequestService.AuthorizationRequest authorization = oidc4VpRequestService.createAuthorizationRequest(null, null, null, realm);
         String payload = authorization.qrPayload();
         String helperText = "State: " + authorization.state() + " | Nonce: " + authorization.nonce();
         OnboardingQrResponse qr = new OnboardingQrResponse(

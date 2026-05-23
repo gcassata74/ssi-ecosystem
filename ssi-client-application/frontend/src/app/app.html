@@ -18,44 +18,72 @@
 -->
 
 <main class="app-shell">
+
   <header class="brand-header">
-    <div class="logo-placeholder" role="img" aria-label="Izylife logo">Izylife</div>
+    <div class="logo-mark" role="img" aria-label="Izylife logo">IL</div>
+    <span class="brand-name">Izylife Platform</span>
   </header>
 
-  <section class="card">
-    <h1 class="title">Welcome to the SSI Client</h1>
-    <p class="text">Start the verification flow by opening the Izylife verifier portal to scan the QR code.</p>
-    <button type="button" class="login-button" (click)="onLoginClick()">Go to Verifier</button>
-  </section>
+  @if (authStatus !== 'authenticated') {
 
-  <section class="card status">
-    <h2>Status</h2>
-    <p>Authentication state: <strong>{{ authStatus }}</strong></p>
+    <!-- Step 1: issuance -->
+    <section class="card">
+      <div class="step-tag">Passo 1</div>
+      <h2 class="card-title">Ottieni la tua Staff Credential</h2>
+      <p class="card-text">
+        Accedi con il tuo account Izylife per ricevere la credenziale digitale
+        da conservare nel tuo wallet SSI.
+      </p>
+      <button type="button" class="action-button" (click)="onGetCredentialClick()">
+        Ottieni credenziale
+      </button>
+    </section>
 
-    <ng-container *ngIf="authStatus === 'authenticated'; else notAuthenticated">
+    <!-- Step 2: verification -->
+    <section class="card">
+      <div class="step-tag">Passo 2</div>
+      <h2 class="card-title">Accedi al portale</h2>
+      <p class="card-text">
+        Usa la credenziale appena ottenuta per autenticarti: scansiona il QR
+        con il tuo wallet SSI.
+      </p>
+      <button type="button" class="action-button" (click)="onLoginClick()">
+        Accedi con SSI Credential
+      </button>
+    </section>
+
+  } @else {
+
+    <section class="card card--success">
+      <div class="success-icon">✓</div>
+      <h2 class="card-title">Accesso effettuato</h2>
+
       <div class="identity-block">
-        <h3>Verified Identity</h3>
-        <p><strong>Holder DID:</strong> {{ holderDid || 'n/a' }}</p>
+        @if (holderDid) {
+          <p class="holder-did">
+            <span class="label">DID:</span>
+            <code>{{ holderDid }}</code>
+          </p>
+        }
 
-        <div *ngIf="credentialEntries.length" class="claims">
-          <h4>Credential Claims</h4>
-          <dl>
-            <div *ngFor="let entry of credentialEntries">
-              <dt>{{ entry.key }}</dt>
-              <dd>{{ entry.value }}</dd>
-            </div>
-          </dl>
-        </div>
+        @if (credentialEntries.length) {
+          <div class="claims">
+            <h3 class="claims-title">Credenziali verificate</h3>
+            <dl>@for (entry of credentialEntries; track entry.key) {
+              <div class="claim-row"><dt>{{ entry.key }}</dt><dd>{{ entry.value }}</dd></div>
+            }</dl>
+          </div>
+        }
 
-        <details *ngIf="tokenPayloadJson" class="token-payload">
-          <summary>View access token payload</summary>
-          <pre>{{ tokenPayloadJson }}</pre>
-        </details>
+        @if (tokenPayloadJson) {
+          <details class="token-details">
+            <summary>Payload access token</summary>
+            <pre>{{ tokenPayloadJson }}</pre>
+          </details>
+        }
       </div>
-    </ng-container>
+    </section>
 
-    <ng-template #notAuthenticated>
-      <p>No verified credentials yet. Click the button above to start the verifier flow.</p>
-    </ng-template>
-  </section>
+  }
+
 </main>

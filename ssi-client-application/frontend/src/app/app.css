@@ -21,135 +21,221 @@
   display: block;
   min-height: 100vh;
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-  background: #ffffff;
+  background: #f1f5f9;
   color: #1f2933;
 }
+
+/* ─── Layout ─────────────────────────────────────────── */
 
 .app-shell {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  gap: 2rem;
+  gap: 1.75rem;
   width: 100%;
   min-height: 100%;
-  padding: 3rem 1.5rem;
+  padding: 3rem 1.5rem 4rem;
   box-sizing: border-box;
 }
 
+/* ─── Header ─────────────────────────────────────────── */
+
 .brand-header {
   display: flex;
-  justify-content: center;
-  width: 100%;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
-.logo-placeholder {
+.logo-mark {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 120px;
-  height: 120px;
-  border-radius: 50%;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
   background: linear-gradient(135deg, #68d8d6, #6d79ff);
-  color: #ffffff;
-  font-size: 1.5rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  box-shadow: 0 16px 30px rgba(109, 121, 255, 0.25);
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  box-shadow: 0 6px 18px rgba(109, 121, 255, 0.3);
 }
+
+.brand-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.01em;
+}
+
+/* ─── Cards ──────────────────────────────────────────── */
 
 .card {
-  max-width: 420px;
+  max-width: 440px;
   width: 100%;
   text-align: center;
-  padding: 2.5rem 2rem;
+  padding: 2.25rem 2rem;
   background: #ffffff;
-  border-radius: 18px;
+  border-radius: 16px;
   border: 1px solid #e5e7eb;
-  box-shadow: 0 20px 45px rgba(15, 23, 42, 0.08);
+  box-shadow: 0 8px 30px rgba(15, 23, 42, 0.07);
 }
 
-.title {
-  margin: 0 0 1rem;
-  font-size: 2rem;
-  font-weight: 600;
+.card--success {
+  border-top: 4px solid #16a34a;
+}
+
+/* ─── Step tag ───────────────────────────────────────── */
+
+.step-tag {
+  display: inline-block;
+  margin-bottom: 1rem;
+  padding: 0.2rem 0.65rem;
+  background: #eff6ff;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #1e40af;
+}
+
+/* ─── Typography ─────────────────────────────────────── */
+
+.card-title {
+  margin: 0 0 0.75rem;
+  font-size: 1.25rem;
+  font-weight: 700;
   color: #0f172a;
 }
 
-.text {
-  margin: 0 0 2rem;
-  font-size: 1rem;
-  line-height: 1.6;
+.card-text {
+  margin: 0 0 1.75rem;
+  font-size: 0.95rem;
+  line-height: 1.65;
   color: #475569;
 }
 
-.login-button {
-  padding: 0.75rem 2.5rem;
-  font-size: 1rem;
+.success-icon {
+  font-size: 2.5rem;
+  color: #16a34a;
+  margin-bottom: 0.75rem;
+}
+
+/* ─── Button ─────────────────────────────────────────── */
+
+.action-button {
+  display: inline-block;
+  padding: 0.75rem 2.25rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: #0c1531;
   background: linear-gradient(135deg, #68d8d6, #6d79ff);
   border: none;
   border-radius: 999px;
   cursor: pointer;
+  text-decoration: none;
   transition: transform 0.15s ease, box-shadow 0.15s ease;
+  box-shadow: 0 4px 14px rgba(109, 121, 255, 0.25);
 }
 
-.login-button:hover {
+.action-button:hover {
   transform: translateY(-1px);
-  box-shadow: 0 12px 24px rgba(109, 121, 255, 0.25);
+  box-shadow: 0 10px 24px rgba(109, 121, 255, 0.3);
 }
 
-.login-button:active {
+.action-button:active {
   transform: translateY(0);
-  box-shadow: 0 6px 18px rgba(109, 121, 255, 0.2);
 }
 
-.card.status {
-  text-align: left;
-  max-width: 520px;
-  width: 100%;
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-}
+/* ─── Identity block ─────────────────────────────────── */
 
 .identity-block {
-  margin-top: 1.5rem;
-  padding: 1.5rem;
-  border-radius: 14px;
+  text-align: left;
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  border-radius: 12px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
 }
 
-.claims dl {
-  display: grid;
-  grid-template-columns: max-content 1fr;
-  gap: 0.5rem 1.5rem;
-  margin: 1rem 0 0;
+.holder-did {
+  margin: 0 0 1rem;
+  font-size: 0.85rem;
+  word-break: break-all;
+  color: #334155;
 }
 
-.claims dt {
+.holder-did .label {
   font-weight: 600;
+  margin-right: 0.4rem;
+}
+
+.holder-did code {
+  color: #1e40af;
+}
+
+/* ─── Claims ─────────────────────────────────────────── */
+
+.claims-title {
+  margin: 0 0 0.75rem;
+  font-size: 0.9rem;
+  font-weight: 700;
   color: #0f172a;
 }
 
-.claims dd {
+.claims dl {
   margin: 0;
-  color: #475569;
 }
 
-.token-payload {
-  margin-top: 1.5rem;
+.claim-row {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 0.25rem 1.25rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #f1f5f9;
 }
 
-.token-payload pre {
+.claim-row:last-child {
+  border-bottom: none;
+}
+
+.claim-row dt {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: #166534;
+}
+
+.claim-row dd {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+/* ─── Token details ──────────────────────────────────── */
+
+.token-details {
+  margin-top: 1.25rem;
+}
+
+.token-details summary {
+  cursor: pointer;
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.token-details pre {
+  margin: 0.75rem 0 0;
   background: #f1f5f9;
   color: #1f2937;
   padding: 1rem;
-  border-radius: 12px;
+  border-radius: 10px;
   overflow-x: auto;
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   line-height: 1.4;
   border: 1px solid #e2e8f0;
+  white-space: pre-wrap;
+  word-break: break-word;
 }

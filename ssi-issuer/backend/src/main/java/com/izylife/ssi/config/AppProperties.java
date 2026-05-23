@@ -146,10 +146,15 @@ public class AppProperties {
     @Setter
     public static class KeycloakProperties {
         private boolean enabled = false;
+        private boolean oidcEnabled = false;
         private String baseUrl;
         private String realm;
         private String clientId;
         private String clientSecret;
+        private String adminUsername;
+        private String adminPassword;
+        private String issuerClientId;
+        private String issuerClientSecret;
         private boolean includeClientRoles = false;
         private String rolesClaim = "roles";
         private String userLookupAttribute = "username";

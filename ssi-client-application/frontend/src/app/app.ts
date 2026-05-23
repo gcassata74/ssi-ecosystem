@@ -1,12 +1,31 @@
-import { CommonModule } from '@angular/common';
+/*
+ * SSI Client Application
+ * Copyright (c) 2026-present Izylife Solutions s.r.l.
+ * Author: Giuseppe Cassata
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published
+ * by the Free Software Foundation, either version 3 of the License,
+ * or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+ * See the GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program. If not, see <https://www.gnu.org/licenses/>.
+ */
+
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { Subscription } from 'rxjs';
 import { SsiAuthService } from '@ssi/issuer-auth-client/angular';
+import { issuerBaseUrl, keycloakRealm } from './app.config';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './app.html',
   styleUrl: './app.css'
 })
@@ -16,6 +35,8 @@ export class App implements OnInit, OnDestroy {
   holderDid?: string;
   credentialEntries: Array<{ key: string; value: unknown }> = [];
   tokenPayloadJson?: string;
+
+  readonly issuerUrl = `${issuerBaseUrl}/issuer?realm=${keycloakRealm}`;
 
   private tokensSub?: Subscription;
 
@@ -36,6 +57,10 @@ export class App implements OnInit, OnDestroy {
 
   ngOnDestroy(): void {
     this.tokensSub?.unsubscribe();
+  }
+
+  public onGetCredentialClick(): void {
+    window.location.href = this.issuerUrl;
   }
 
   public onLoginClick(): void {

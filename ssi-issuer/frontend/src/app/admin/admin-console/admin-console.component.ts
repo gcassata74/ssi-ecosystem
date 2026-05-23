@@ -5,12 +5,14 @@ import { PresentationDefinitionBuilderComponent } from '../../presentation-defin
 import { AdminAuthService, AdminUser } from '../../services/admin-auth.service';
 import {
   AdminApiService,
+  ClaimMappingEntry,
   ClientResponse,
   ClientSecretResponse,
   CreateClientPayload,
   CreateTenantPayload,
   PresentationDefinitionPayload,
   PresentationDefinitionResponse,
+  RealmDidResponse,
   TenantResponse
 } from '../../services/admin-api.service';
 
@@ -59,6 +61,13 @@ export class AdminConsoleComponent implements OnInit {
   notification?: string;
   error?: string;
 
+  realmDid?: RealmDidResponse;
+  realmDidLoading = false;
+  realmDidGenerating = false;
+  claimMappings: ClaimMappingEntry[] = [];
+  claimConfigLoading = false;
+  claimConfigSaving = false;
+
   constructor(
     private readonly fb: FormBuilder,
     private readonly authService: AdminAuthService,
@@ -74,6 +83,8 @@ export class AdminConsoleComponent implements OnInit {
         return;
       }
       this.loadTenants();
+      this.loadRealmDid();
+      this.loadClaimConfig();
     });
   }
 
@@ -353,6 +364,61 @@ export class AdminConsoleComponent implements OnInit {
           this.error = 'Unable to delete presentation definition.';
         }
       });
+  }
+
+  loadRealmDid(): void {
+    this.realmDidLoading = true;
+    this.api.getRealmDid().subscribe({
+      next: did => { this.realmDid = did; this.realmDidLoading = false; },
+      error: () => { this.realmDidLoading = false; }
+    });
+  }
+
+  generateDid(): void {
+    if (!confirm('Generare un nuovo DID:key per questo realm? Il DID precedente non sarà più usato per le nuove emissioni.')) return;
+    this.realmDidGenerating = true;
+    this.api.generateRealmDid().subscribe({
+      next: did => {
+        this.realmDid = did;
+        this.realmDidGenerating = false;
+        this.notification = 'Nuovo DID:key generato con successo.';
+      },
+      error: () => {
+        this.realmDidGenerating = false;
+        this.error = 'Impossibile generare il DID. Verifica che Keycloak sia avviato e il SPI installato.';
+      }
+    });
+  }
+
+  loadClaimConfig(): void {
+    this.claimConfigLoading = true;
+    this.api.getClaimConfig().subscribe({
+      next: claims => { this.claimMappings = claims; this.claimConfigLoading = false; },
+      error: () => { this.claimConfigLoading = false; }
+    });
+  }
+
+  addClaimRow(): void {
+    this.claimMappings = [...this.claimMappings, { keycloakClaim: '', credentialClaim: '', mandatory: false }];
+  }
+
+  removeClaimRow(index: number): void {
+    this.claimMappings = this.claimMappings.filter((_, i) => i !== index);
+  }
+
+  saveClaimConfig(): void {
+    this.claimConfigSaving = true;
+    this.error = undefined;
+    this.api.updateClaimConfig(this.claimMappings).subscribe({
+      next: () => {
+        this.claimConfigSaving = false;
+        this.notification = 'Claim mapping salvato.';
+      },
+      error: () => {
+        this.claimConfigSaving = false;
+        this.error = 'Impossibile salvare il claim mapping.';
+      }
+    });
   }
 
   private parseRedirectUris(value: string | null | undefined): string[] {

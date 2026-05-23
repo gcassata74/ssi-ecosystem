@@ -26,6 +26,13 @@ services:
       SPRING_DATA_MONGODB_DATABASE: ssi-issuer
       APP_ISSUER_ENDPOINT: ${APP_ISSUER_ENDPOINT:-http://localhost:9090}
       SERVER_FORWARD_HEADERS_STRATEGY: framework
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-izylife}
+      APP_KEYCLOAK_OIDC_ENABLED: ${APP_KEYCLOAK_OIDC_ENABLED:-true}
+      KEYCLOAK_ISSUER_CLIENT_ID: ${KEYCLOAK_ISSUER_CLIENT_ID:-ssi-issuer}
+      KEYCLOAK_ISSUER_CLIENT_SECRET: ${KEYCLOAK_ISSUER_CLIENT_SECRET:-}
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -41,6 +48,8 @@ services:
       SPRING_DATA_MONGODB_DATABASE: ssi-verifier
       APP_VERIFIER_ENDPOINT: ${APP_VERIFIER_ENDPOINT:-http://localhost:9091}
       SERVER_FORWARD_HEADERS_STRATEGY: framework
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-master}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     ports:
@@ -61,11 +70,13 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:26.2
     restart: unless-stopped
-    command: start-dev
+    command: start-dev --import-realm
     environment:
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      KC_DB: dev-mem
+    volumes:
+      - ./ssi-keycloak-provider/target/ssi-keycloak-provider-0.0.1-SNAPSHOT.jar:/opt/keycloak/providers/ssi-keycloak-provider.jar
+      - ./ssi-issuer/keycloak/izylife-realm.json:/opt/keycloak/data/import/izylife-realm.json
     ports:
       - "8180:8080"
 

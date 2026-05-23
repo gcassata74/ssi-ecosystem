@@ -15,6 +15,8 @@ const verifierEndpoint = resolveVerifierEndpoint();
 
 export const environment = {
   production: false,
+  keycloakUrl: 'http://localhost:8180',
+  keycloakClientId: 'ssi-issuer-spa',
   spid: {
     entityId: verifierEndpoint ? `${verifierEndpoint}/spid` : undefined,
     authBaseUrl: 'https://demo.spid.gov.it/samlsso',

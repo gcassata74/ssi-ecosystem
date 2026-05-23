@@ -32,6 +32,7 @@ public class AppProperties {
 
     private VerifierProperties verifier = new VerifierProperties();
     private CorsProperties cors = new CorsProperties();
+    private KeycloakProperties keycloak = new KeycloakProperties();
 
     @Getter
     @Setter
@@ -52,6 +53,13 @@ public class AppProperties {
     public static class CorsProperties {
         private List<String> allowedOrigins = List.of("*");
         private boolean allowCredentials;
+    }
+
+    @Getter
+    @Setter
+    public static class KeycloakProperties {
+        private String baseUrl = "http://localhost:8180";
+        private String realm = "master";
     }
 
     @Getter

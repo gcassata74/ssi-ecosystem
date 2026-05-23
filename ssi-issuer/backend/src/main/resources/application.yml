@@ -74,7 +74,17 @@ app:
         required: true
       - name: email
         friendly-name: email
-spring:
+  keycloak:
+    enabled: ${APP_KEYCLOAK_ENABLED:false}
+    oidc-enabled: ${APP_KEYCLOAK_OIDC_ENABLED:false}
+    base-url: ${KEYCLOAK_BASE_URL:http://localhost:8180}
+    realm: ${KEYCLOAK_REALM:}
+    client-id: ${KEYCLOAK_ADMIN_CLIENT_ID:}
+    client-secret: ${KEYCLOAK_ADMIN_CLIENT_SECRET:}
+    admin-username: ${KEYCLOAK_ADMIN_USERNAME:admin}
+    admin-password: ${KEYCLOAK_ADMIN_PASSWORD:admin}
+    issuer-client-id: ${KEYCLOAK_ISSUER_CLIENT_ID:ssi-issuer}
+    issuer-client-secret: ${KEYCLOAK_ISSUER_CLIENT_SECRET:}
   data:
     mongodb:
       uri: ${SPRING_DATA_MONGODB_URI:mongodb://localhost:27017/ssi-issuer}

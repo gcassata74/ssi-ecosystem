@@ -31,8 +31,11 @@ import com.nimbusds.jose.jwk.ECKey;
 import com.nimbusds.jose.jwk.JWK;
 import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.util.Base64URL;
+import com.nimbusds.jwt.JWTClaimsSet;
+import com.nimbusds.jwt.SignedJWT;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Objects;
 
 @Service
@@ -106,5 +109,26 @@ public class IssuerSigningService {
 
     public JWKSet getPublicJwkSet() {
         return publicJwkSet;
+    }
+
+    public String sign(JWTClaimsSet claims, Map<String, Object> privateJwkMap, String kid) {
+        try {
+            ECKey ecKey = new ECKey.Builder(
+                    Curve.P_256,
+                    new Base64URL((String) privateJwkMap.get("x")),
+                    new Base64URL((String) privateJwkMap.get("y")))
+                    .d(new Base64URL((String) privateJwkMap.get("d")))
+                    .keyID(kid)
+                    .build();
+            JWSHeader header = new JWSHeader.Builder(JWSAlgorithm.ES256)
+                    .type(JOSEObjectType.JWT)
+                    .keyID(kid)
+                    .build();
+            SignedJWT jwt = new SignedJWT(header, claims);
+            jwt.sign(new ECDSASigner(ecKey));
+            return jwt.serialize();
+        } catch (JOSEException ex) {
+            throw new IllegalStateException("Unable to sign credential JWT with realm key", ex);
+        }
     }
 }

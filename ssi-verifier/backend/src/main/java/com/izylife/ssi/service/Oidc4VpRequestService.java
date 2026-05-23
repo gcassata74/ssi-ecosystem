@@ -38,9 +38,12 @@ import com.nimbusds.jose.jwk.JWKSet;
 import com.nimbusds.jose.util.Base64URL;
 import com.nimbusds.jwt.JWTClaimsSet;
 import com.nimbusds.jwt.SignedJWT;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import java.io.IOException;
 import java.net.URLEncoder;
@@ -59,18 +62,23 @@ import java.util.UUID;
 @Service
 public class Oidc4VpRequestService {
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(Oidc4VpRequestService.class);
     private static final Duration DEFAULT_REQUEST_TTL = Duration.ofMinutes(5);
 
     private final AppProperties appProperties;
     private final ObjectMapper objectMapper;
+    private final RestTemplate restTemplate = new RestTemplate();
     private final JWSSigner signer;
     private final JWSAlgorithm signingAlgorithm;
     private final JWKSet publicJwkSet;
-    private final JsonNode presentationDefinition;
+    private volatile JsonNode presentationDefinition;
     private final Cache<String, AuthorizationSession> sessions = Caffeine.newBuilder()
             .expireAfterWrite(DEFAULT_REQUEST_TTL)
             .build();
-    private final Set<String> inputDescriptorIds;
+    private volatile Set<String> inputDescriptorIds;
+    private final Cache<String, JsonNode> realmDefinitionCache = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(30))
+            .build();
 
     public Oidc4VpRequestService(AppProperties appProperties, ObjectMapper objectMapper) throws IOException, JOSEException {
         this.appProperties = appProperties;
@@ -83,11 +91,15 @@ public class Oidc4VpRequestService {
                 ? JWSAlgorithm.parse(signerKey.getAlgorithm().getName())
                 : JWSAlgorithm.ES256;
         this.publicJwkSet = new JWKSet(signerKey.toPublicJWK());
-        this.presentationDefinition = loadPresentationDefinition(appProperties.getVerifier().getPresentationDefinitionId());
+        this.presentationDefinition = loadPresentationDefinition();
         this.inputDescriptorIds = Collections.unmodifiableSet(extractInputDescriptorIds(this.presentationDefinition));
     }
 
     public AuthorizationRequest createAuthorizationRequest(String redirectUri, String portalClientId, String authorizationState) {
+        return createAuthorizationRequest(redirectUri, portalClientId, authorizationState, null);
+    }
+
+    public AuthorizationRequest createAuthorizationRequest(String redirectUri, String portalClientId, String authorizationState, String realm) {
         String state = UUID.randomUUID().toString();
         String nonce = "nonce-" + state.substring(0, 8);
         Instant now = Instant.now();
@@ -99,8 +111,15 @@ public class Oidc4VpRequestService {
         String clientIdScheme = defaultString(appProperties.getVerifier().getClientIdScheme(), "redirect_uri");
         String requestId = state;
         String requestUri = verifierEndpoint + "/oidc4vp/requests/" + requestId;
+
+        boolean hasRealm = realm != null && !realm.isBlank();
         String presentationDefinitionId = appProperties.getVerifier().getPresentationDefinitionId();
-        String presentationDefinitionUri = verifierEndpoint + "/definitions/" + presentationDefinitionId + ".json";
+        String presentationDefinitionUri = hasRealm
+                ? verifierEndpoint + "/definitions/" + realm + "/staff-credential.json"
+                : verifierEndpoint + "/definitions/" + presentationDefinitionId + ".json";
+        JsonNode definitionToEmbed = hasRealm
+                ? loadDefinitionForRealm(realm)
+                : this.presentationDefinition;
 
         String requestObject = buildSignedRequestObject(
                 state,
@@ -109,6 +128,7 @@ public class Oidc4VpRequestService {
                 clientIdScheme,
                 responseMode,
                 presentationDefinitionUri,
+                definitionToEmbed,
                 now,
                 expiresAt
         );
@@ -178,6 +198,7 @@ public class Oidc4VpRequestService {
             String clientIdScheme,
             String responseMode,
             String presentationDefinitionUri,
+            JsonNode definitionToEmbed,
             Instant issuedAt,
             Instant expiresAt
     ) {
@@ -196,9 +217,9 @@ public class Oidc4VpRequestService {
                     .claim("response_uri", clientId)
                     .claim("nonce", nonce)
                     .claim("state", state)
-                    .claim("presentation_definition", objectMapper.convertValue(presentationDefinition, Map.class))
+                    .claim("presentation_definition", objectMapper.convertValue(definitionToEmbed, Map.class))
                     .claim("presentation_definition_uri", presentationDefinitionUri)
-                    .claim("client_metadata", buildClientMetadata());
+                    .claim("client_metadata", buildClientMetadata(definitionToEmbed));
 
             SignedJWT signedJWT = new SignedJWT(new JWSHeader.Builder(signingAlgorithm)
                     .keyID(publicJwkSet.getKeys().get(0).getKeyID())
@@ -212,9 +233,9 @@ public class Oidc4VpRequestService {
         }
     }
 
-    private Map<String, Object> buildClientMetadata() {
+    private Map<String, Object> buildClientMetadata(JsonNode definition) {
         Map<String, Object> metadata = new LinkedHashMap<>();
-        JsonNode proofTypeNode = presentationDefinition.path("format").path("ldp_vp").path("proof_type");
+        JsonNode proofTypeNode = definition.path("format").path("ldp_vp").path("proof_type");
         Object proofTypes = proofTypeNode.isMissingNode()
                 ? null
                 : objectMapper.convertValue(proofTypeNode, Object.class);
@@ -227,12 +248,72 @@ public class Oidc4VpRequestService {
         return metadata;
     }
 
-    private JsonNode loadPresentationDefinition(String definitionId) throws IOException {
+    /** Fetches from Keycloak SPI; falls back to classpath resource if Keycloak is unreachable. */
+    private JsonNode loadPresentationDefinition() throws IOException {
+        AppProperties.KeycloakProperties kc = appProperties.getKeycloak();
+        String realm = kc.getRealm();
+        String base = kc.getBaseUrl();
+        if (base != null && !base.isBlank() && realm != null && !realm.isBlank()) {
+            String url = base.replaceAll("/+$", "") + "/realms/" + realm + "/ssi-issuer/presentation-definition";
+            try {
+                String json = restTemplate.getForObject(url, String.class);
+                if (json != null && !json.isBlank()) {
+                    LOGGER.info("Loaded presentation definition from Keycloak SPI: {}", url);
+                    return objectMapper.readTree(json);
+                }
+            } catch (Exception e) {
+                LOGGER.warn("Could not fetch presentation definition from Keycloak SPI ({}): {}. Falling back to classpath.", url, e.getMessage());
+            }
+        }
+        return loadFromClasspath(appProperties.getVerifier().getPresentationDefinitionId());
+    }
+
+    public JsonNode loadDefinitionForRealm(String realm) {
+        return realmDefinitionCache.get(realm, r -> {
+            String base = appProperties.getKeycloak().getBaseUrl();
+            if (base != null && !base.isBlank()) {
+                String url = base.replaceAll("/+$", "") + "/realms/" + r + "/ssi-issuer/presentation-definition";
+                try {
+                    String json = restTemplate.getForObject(url, String.class);
+                    if (json != null && !json.isBlank()) {
+                        LOGGER.info("Loaded presentation definition for realm '{}' from Keycloak SPI", r);
+                        return objectMapper.readTree(json); // IOException wrapped by Caffeine loader
+                    }
+                } catch (IOException e) {
+                    LOGGER.warn("Could not parse presentation definition for realm '{}': {}", r, e.getMessage());
+                } catch (Exception e) {
+                    LOGGER.warn("Could not fetch presentation definition for realm '{}' from Keycloak SPI: {}. Falling back to classpath.", r, e.getMessage());
+                }
+            }
+            try {
+                return loadFromClasspath(appProperties.getVerifier().getPresentationDefinitionId());
+            } catch (IOException e) {
+                LOGGER.error("Classpath fallback also failed for realm '{}'", r, e);
+                return this.presentationDefinition;
+            }
+        });
+    }
+
+    public JsonNode reloadPresentationDefinition() {
+        try {
+            JsonNode reloaded = loadPresentationDefinition();
+            this.presentationDefinition = reloaded;
+            this.inputDescriptorIds = Collections.unmodifiableSet(extractInputDescriptorIds(reloaded));
+            LOGGER.info("Presentation definition reloaded successfully.");
+            return reloaded;
+        } catch (IOException e) {
+            LOGGER.error("Failed to reload presentation definition", e);
+            return this.presentationDefinition;
+        }
+    }
+
+    private JsonNode loadFromClasspath(String definitionId) throws IOException {
         String path = "definitions/" + definitionId + ".json";
         Resource resource = new ClassPathResource(path);
         if (!resource.exists()) {
-            throw new IOException("Presentation definition resource not found: " + path);
+            throw new IOException("Presentation definition not found in Keycloak SPI or classpath: " + path);
         }
+        LOGGER.info("Loaded presentation definition from classpath: {}", path);
         return objectMapper.readTree(resource.getInputStream());
     }
 

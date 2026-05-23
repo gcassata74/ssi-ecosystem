@@ -43,23 +43,30 @@
       Unable to start SPID login because the configuration is missing.
     </p>
 
-    <div *ngIf="(!isSpidPrompt && qr.qrCodeImageDataUrl)" class="qr-wrapper">
+    <div *ngIf="isOidcPrompt" class="spid-action">
+      <a class="spid-button" [href]="loginUrl">
+        {{ qr?.actionLabel || 'Entra con Keycloak' }}
+      </a>
+    </div>
+
+    <div *ngIf="(!isLoginPrompt && qr.qrCodeImageDataUrl)" class="qr-wrapper">
       <img [src]="qr.qrCodeImageDataUrl" [alt]="'QR code for ' + qr.title" />
     </div>
     <p *ngIf="qr.helperText && !isIssuerStep" class="helper">{{ qr.helperText }}</p>
-    <p *ngIf="qr.helperText && isIssuerStep && !isSpidPrompt" class="issuer-helper">{{ qr.helperText }}</p>
-    <p *ngIf="qr.helperText && isSpidPrompt" class="spid-helper">{{ qr.helperText }}</p>
+    <p *ngIf="qr.helperText && isIssuerStep && !isLoginPrompt" class="issuer-helper">{{ qr.helperText }}</p>
+    <p *ngIf="qr.helperText && isLoginPrompt" class="spid-helper">{{ qr.helperText }}</p>
     <details *ngIf="qr.qrCodePayload as payload" class="payload-details">
       <summary>View payload</summary>
       <pre class="payload"><code>{{ payload }}</code></pre>
     </details>
+
     <details *ngIf="qr.credentialPreview?.rawJson" class="credential-json">
       <summary>View credential JSON</summary>
       <pre class="payload"><code>{{ qr.credentialPreview.rawJson }}</code></pre>
     </details>
 
     <div *ngIf="qr.credentialPreview as preview">
-      <div *ngIf="isIssuerStep && !isSpidPrompt; else verifierPreview" class="issuer-details">
+      <div *ngIf="isIssuerStep && !isLoginPrompt; else verifierPreview" class="issuer-details">
         <p class="issuer-highlight">
           No credential detected in the wallet response. Share this mock credential with the wallet to continue verification.
         </p>

@@ -63,6 +63,17 @@ export interface PresentationDefinitionPayload {
   definitionJson: string;
 }
 
+export interface RealmDidResponse {
+  did: string;
+  publicJwk: Record<string, unknown>;
+}
+
+export interface ClaimMappingEntry {
+  keycloakClaim: string;
+  credentialClaim: string;
+  mandatory: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class AdminApiService {
   constructor(private readonly http: HttpClient) {}
@@ -144,5 +155,21 @@ export class AdminApiService {
       `/api/admin/tenants/${tenantId}/clients/${clientId}/definitions/${definitionId}`,
       { withCredentials: true }
     );
+  }
+
+  getRealmDid(): Observable<RealmDidResponse> {
+    return this.http.get<RealmDidResponse>('/api/admin/realm-ssi/did', { withCredentials: true });
+  }
+
+  generateRealmDid(): Observable<RealmDidResponse> {
+    return this.http.post<RealmDidResponse>('/api/admin/realm-ssi/did', {}, { withCredentials: true });
+  }
+
+  getClaimConfig(): Observable<ClaimMappingEntry[]> {
+    return this.http.get<ClaimMappingEntry[]>('/api/admin/realm-ssi/credential-config', { withCredentials: true });
+  }
+
+  updateClaimConfig(claims: ClaimMappingEntry[]): Observable<ClaimMappingEntry[]> {
+    return this.http.put<ClaimMappingEntry[]>('/api/admin/realm-ssi/credential-config', claims, { withCredentials: true });
   }
 }

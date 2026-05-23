@@ -9,6 +9,9 @@ const appOrigin = typeof window !== 'undefined' && window.location?.origin
 const redirectUri = `${appOrigin}`;
 const dynamicClientId = redirectUri;
 
+export const issuerBaseUrl = 'https://izylife-issuer.eu.ngrok.io';
+export const keycloakRealm = 'izylife';
+
 export const appConfig: ApplicationConfig = {
   providers: [
     provideBrowserGlobalErrorListeners(),
