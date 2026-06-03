@@ -84,7 +84,19 @@ export class CredentialService {
       await SecureStoragePlugin.set({ key: STORAGE_KEY, value });
       return true;
     } catch (error) {
-      console.warn('Failed to persist credentials to secure storage.', error);
+      console.warn('Failed to persist credentials to secure storage; trying localStorage fallback.', error);
+    }
+
+    try {
+      const storage = this.getLocalStorage();
+      if (!storage) {
+        return false;
+      }
+
+      storage.setItem(STORAGE_KEY, value);
+      return true;
+    } catch (error) {
+      console.warn('Failed to persist credentials to localStorage fallback.', error);
       return false;
     }
   }
@@ -95,12 +107,33 @@ export class CredentialService {
       return value;
     } catch (error) {
       if (this.isMissingKeyError(error)) {
+        return this.readLocalFallback();
+      }
+
+      console.warn('Failed to read credentials from secure storage; trying localStorage fallback.', error);
+      return this.readLocalFallback();
+    }
+  }
+
+  private readLocalFallback(): string | null {
+    try {
+      const storage = this.getLocalStorage();
+      if (!storage) {
         return null;
       }
 
-      console.warn('Failed to read credentials from secure storage.', error);
+      return storage.getItem(STORAGE_KEY);
+    } catch (error) {
+      console.warn('Failed to read credentials from localStorage fallback.', error);
       return null;
     }
+  }
+
+  private getLocalStorage(): Storage | undefined {
+    if (typeof globalThis === 'undefined' || !('localStorage' in globalThis)) {
+      return undefined;
+    }
+    return globalThis.localStorage;
   }
 
   private isMissingKeyError(error: unknown): boolean {

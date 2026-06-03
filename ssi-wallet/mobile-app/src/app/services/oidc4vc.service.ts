@@ -132,10 +132,12 @@ export class Oidc4vcService {
       }
     }
 
-    if (issued.length > 0) {
-      await this.credentialService.addVerifiableCredentials(issued);
-      await this.notifyIssuerCredentialsReceived(issuer, issued.length);
+    if (issued.length === 0) {
+      throw new Error('Credential issuer did not return any credential to store.');
     }
+
+    await this.credentialService.addVerifiableCredentials(issued);
+    await this.notifyIssuerCredentialsReceived(issuer, issued.length);
 
     return {
       issuer,
