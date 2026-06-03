@@ -47,7 +47,7 @@ public class OnboardingController {
     }
 
     @GetMapping("/issuer")
-    public OnboardingQrResponse getIssuerQr(@RequestParam(required = false) String realm) {
+    public OnboardingQrResponse getIssuerQr(@RequestParam(name = "realm", required = false) String realm) {
         return onboardingStateService.getIssuerQr(realm);
     }
 

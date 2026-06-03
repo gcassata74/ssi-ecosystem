@@ -164,22 +164,24 @@ public class OnboardingStateService {
 
     public void completeIssuerEnrollmentWithKeycloak(Map<String, Object> credentialSubject,
                                                       String issuerDid,
-                                                      Map<String, Object> privateJwk) {
+                                                      Map<String, Object> privateJwk,
+                                                      String realm) {
         if (credentialSubject == null || issuerDid == null || privateJwk == null) {
             return;
         }
         Oidc4vciService.StaffProfile profile = new Oidc4vciService.StaffProfile(
-                (String) credentialSubject.getOrDefault("id", issuerDid),
-                (String) credentialSubject.getOrDefault("familyName", ""),
-                (String) credentialSubject.getOrDefault("givenName", ""),
-                (String) credentialSubject.getOrDefault("role", ""),
-                (String) credentialSubject.getOrDefault("employeeNumber", ""),
-                (String) credentialSubject.get("email")
+                valueAsString(credentialSubject.getOrDefault("id", issuerDid), issuerDid),
+                valueAsString(credentialSubject.get("familyName"), ""),
+                valueAsString(credentialSubject.get("givenName"), ""),
+                valueAsString(credentialSubject.get("role"), ""),
+                valueAsString(credentialSubject.get("employeeNumber"), ""),
+                valueAsString(credentialSubject.get("email"), null)
         );
         Oidc4vciService.CredentialOfferRecord offer =
-                oidc4vciService.createStaffCredentialOffer(profile, issuerDid, privateJwk);
+                oidc4vciService.createStaffCredentialOffer(profile, issuerDid, privateJwk, credentialSubject);
         try {
-            String helperText = String.format("issuer_state=%s | pre-authorized grant available", offer.issuerState());
+            String helperText = String.format("realm=%s | issuer_state=%s | pre-authorized grant available",
+                    realm == null ? "n/a" : realm, offer.issuerState());
             String offerJson = objectMapper.writeValueAsString(oidc4vciService.buildCredentialOffer(offer));
             String encoded = java.net.URLEncoder.encode(offerJson, StandardCharsets.UTF_8);
             String qrPayload = "openid-credential-offer://?credential_offer=" + encoded;
@@ -328,6 +330,16 @@ public class OnboardingStateService {
                 .map(AppProperties.IssuerProperties::getOrganizationName)
                 .filter(v -> !v.isBlank())
                 .orElse("the Izylife issuer");
+    }
+
+    private String valueAsString(Object value, String fallback) {
+        if (value == null) {
+            return fallback;
+        }
+        if (value instanceof String stringValue) {
+            return stringValue;
+        }
+        return String.valueOf(value);
     }
 
     private void publishUpdate(OnboardingStep activeStep, OnboardingQrResponse stepQr) {

@@ -81,6 +81,13 @@ public class Oidc4vciService {
     public CredentialOfferRecord createStaffCredentialOffer(StaffProfile profile,
                                                             String issuerDid,
                                                             Map<String, Object> realmPrivateJwk) {
+        return createStaffCredentialOffer(profile, issuerDid, realmPrivateJwk, null);
+    }
+
+    public CredentialOfferRecord createStaffCredentialOffer(StaffProfile profile,
+                                                            String issuerDid,
+                                                            Map<String, Object> realmPrivateJwk,
+                                                            Map<String, Object> credentialSubject) {
         String offerId = randomIdentifier();
         String issuerState = randomIdentifier();
         String preAuthorizedCode = randomIdentifier();
@@ -94,7 +101,8 @@ public class Oidc4vciService {
                 profile,
                 Instant.now(),
                 issuerDid,
-                realmPrivateJwk
+                realmPrivateJwk,
+                credentialSubject
         );
         offersById.put(offerId, record);
         issuerStateIndex.put(issuerState, offerId);
@@ -230,7 +238,7 @@ public class Oidc4vciService {
 
     public String buildStaffCredentialJwt(CredentialOfferRecord offer) {
         StaffProfile profile = offer.profile();
-        Map<String, Object> vc = buildStaffCredentialClaims(profile);
+        Map<String, Object> vc = buildStaffCredentialClaims(profile, offer.credentialSubject());
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         Instant expiresAt = now.plus(365, ChronoUnit.DAYS);
 
@@ -320,7 +328,7 @@ public class Oidc4vciService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    private Map<String, Object> buildStaffCredentialClaims(StaffProfile profile) {
+    private Map<String, Object> buildStaffCredentialClaims(StaffProfile profile, Map<String, Object> credentialSubject) {
         Map<String, Object> credential = new LinkedHashMap<>();
         Instant now = Instant.now().truncatedTo(ChronoUnit.SECONDS);
         credential.put("@context", List.of(
@@ -342,21 +350,33 @@ public class Oidc4vciService {
         )));
 
         Map<String, Object> subject = new LinkedHashMap<>();
-        subject.put("id", profile.subjectDid());
-        subject.put("familyName", profile.familyName());
-        subject.put("givenName", profile.givenName());
-        subject.put("role", profile.role());
-        subject.put("employeeNumber", profile.employeeNumber());
-        if (profile.email() != null) {
-            subject.put("email", profile.email());
+        if (credentialSubject != null && !credentialSubject.isEmpty()) {
+            subject.putAll(credentialSubject);
+            subject.putIfAbsent("id", profile.subjectDid());
+        } else {
+            subject.put("id", profile.subjectDid());
+            subject.put("familyName", profile.familyName());
+            subject.put("givenName", profile.givenName());
+            subject.put("role", profile.role());
+            subject.put("employeeNumber", profile.employeeNumber());
+            if (profile.email() != null) {
+                subject.put("email", profile.email());
+            }
         }
         credential.put("credentialSubject", subject);
 
+        String employeeNumber = Optional.ofNullable(subject.get("employeeNumber"))
+                .map(String::valueOf)
+                .filter(value -> !value.isBlank())
+                .orElseGet(() -> Optional.ofNullable(profile.employeeNumber())
+                        .filter(value -> !value.isBlank())
+                        .orElse("IZY-" + Math.abs(profile.subjectDid().hashCode())));
+
         credential.put("credentialStatus", Map.of(
-                "id", ensureIssuerEndpoint() + "/status/" + profile.employeeNumber(),
+                "id", ensureIssuerEndpoint() + "/status/" + employeeNumber,
                 "type", "StatusList2021Entry",
                 "statusPurpose", "revocation",
-                "statusListIndex", String.valueOf(Math.abs(profile.employeeNumber().hashCode()) % 2048),
+                "statusListIndex", String.valueOf(Math.abs(employeeNumber.hashCode()) % 2048),
                 "statusListCredential", ensureIssuerEndpoint() + "/status-list/2024"
         ));
         return credential;
@@ -385,7 +405,8 @@ public class Oidc4vciService {
                                          StaffProfile profile,
                                          Instant createdAt,
                                          String issuerDid,
-                                         Map<String, Object> realmPrivateJwk) {
+                                         Map<String, Object> realmPrivateJwk,
+                                         Map<String, Object> credentialSubject) {
 
         public CredentialOfferRecord(String offerId,
                                      String issuerState,
@@ -395,7 +416,7 @@ public class Oidc4vciService {
                                      StaffProfile profile,
                                      Instant createdAt) {
             this(offerId, issuerState, preAuthorizedCode, userPinRequired,
-                    credentialConfigurationIds, profile, createdAt, null, null);
+                    credentialConfigurationIds, profile, createdAt, null, null, null);
         }
     }
 

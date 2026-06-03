@@ -34,6 +34,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -69,16 +70,39 @@ public class IssuerEnrollController {
         try {
             KeycloakRealmConfigService.RealmDidInfo didInfo = realmConfigService.getRealmDid(realm);
             Map<String, Object> privateJwk = realmConfigService.getRealmPrivateJwk(realm);
+            List<KeycloakRealmConfigService.ClaimMapping> claimMappings = realmConfigService.getClaimMappings(realm);
 
             Map<String, Object> credentialSubject = new LinkedHashMap<>();
             credentialSubject.put("id", jwt.getSubject());
-            jwt.getClaims().forEach((key, value) -> {
-                if (!SKIP_CLAIMS.contains(key) && value instanceof String) {
-                    credentialSubject.put(key, value);
+            boolean mappedAnyClaim = false;
+            for (KeycloakRealmConfigService.ClaimMapping mapping : claimMappings) {
+                if (mapping == null
+                        || mapping.keycloakClaim() == null
+                        || mapping.keycloakClaim().isBlank()
+                        || mapping.credentialClaim() == null
+                        || mapping.credentialClaim().isBlank()) {
+                    continue;
                 }
-            });
+                Object value = jwt.getClaims().get(mapping.keycloakClaim());
+                if (value == null) {
+                    if (mapping.mandatory()) {
+                        LOGGER.warn("Missing mandatory Keycloak claim '{}' for realm '{}'", mapping.keycloakClaim(), realm);
+                    }
+                    continue;
+                }
+                credentialSubject.put(mapping.credentialClaim(), value);
+                mappedAnyClaim = true;
+            }
 
-            onboardingStateService.completeIssuerEnrollmentWithKeycloak(credentialSubject, didInfo.did(), privateJwk);
+            if (!mappedAnyClaim) {
+                jwt.getClaims().forEach((key, value) -> {
+                    if (!SKIP_CLAIMS.contains(key) && value != null) {
+                        credentialSubject.put(key, value);
+                    }
+                });
+            }
+
+            onboardingStateService.completeIssuerEnrollmentWithKeycloak(credentialSubject, didInfo.did(), privateJwk, realm);
         } catch (Exception e) {
             LOGGER.error("Enrollment failed for realm {}", realm, e);
             return ResponseEntity.internalServerError().build();

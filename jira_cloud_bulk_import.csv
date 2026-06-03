@@ -1,0 +1,62 @@
+Project Key,Issue Type,Summary,Description,Priority,Label,Label,Label,Label,Label,Epic Name,Epic Link
+SSI,Epic,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability,"Goal: Make issuer, wallet, and verifier interoperable with standard OID4VC and EUDI-aligned profiles. Scope includes protocol compliance, interoperability testing, security hardening, and readiness for certification.",High,oid4vci,oid4vp,haip,eudi,compliance,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability,
+SSI,Story,Support standard OID4VCI credential_offer QR parsing,"As a wallet integrator, I want to parse standard OID4VCI credential_offer QR payloads so that I can onboard credentials from third-party issuers.
+
+Acceptance Criteria:
+- Supports openid-credential-offer:// scheme
+- Supports both credential_offer and credential_offer_uri
+- Returns standard protocol errors (invalid_request, invalid_grant)",High,wallet,oid4vci,interop,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Handle one-time pre-authorized_code without false success,"As a wallet user, I want clear handling for one-time pre-authorized_code so that I never see false 'Stored 0 credentials' success states.
+
+Acceptance Criteria:
+- Explicit error when code is consumed or expired
+- No success UI state when credentialCount is 0
+- Technical root cause is logged",High,wallet,oid4vci,bugfix,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Build proof JWTs per OID4VCI spec,"As a wallet, I want proof JWTs built per spec (iss, aud, nonce, negotiated alg) so that interoperable issuers accept credential requests.
+
+Acceptance Criteria:
+- Validates c_nonce usage
+- Supports at least ES256
+- Shows user-friendly proof-related errors",High,wallet,oid4vci,crypto,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Publish complete OID4VCI metadata,"As an issuer, I want complete OID4VCI metadata published so that external wallets can auto-configure without custom integration.
+
+Acceptance Criteria:
+- Valid /.well-known/openid-credential-issuer endpoint
+- Required metadata fields are present
+- Metadata schema validation runs in CI",High,issuer,oid4vci,metadata,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Support EUDI-target credential formats,"As an issuer, I want to issue credentials in EUDI-target interoperable formats (beyond JWT VC) so that multiple wallet types are supported.
+
+Acceptance Criteria:
+- Supports selected target format(s): SD-JWT VC and/or mdoc
+- End-to-end issuance tests pass
+- Backward compatibility is preserved",High,issuer,eudi,formats,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Implement OID4VP 1.0 final compliant verifier flow,"As a verifier, I want OID4VP 1.0 final compliant request/response handling so that external wallets can present credentials without custom adapters.
+
+Acceptance Criteria:
+- Request object is compliant
+- Nonce and state handling is robust
+- vp_token and presentation_submission are fully verified",High,verifier,oid4vp,interop,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Implement key lifecycle controls for compliance,"As a security officer, I want compliant key lifecycle management (rotation, kid, JWKS, audit trail) so that operational and cryptographic risk is controlled.
+
+Acceptance Criteria:
+- Documented key rotation policy
+- JWKS endpoint is available and correct
+- Signing and verification events are auditable",High,security,jwks,keys,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Keep did:key interoperability without blockchain dependency,"As a solution architect, I want to keep did:key (no blockchain dependency) while staying standards-compliant so that infrastructure remains simple and interoperable.
+
+Acceptance Criteria:
+- DID method is configurable
+- Trust model is documented without DLT dependency
+- Interoperability tests with external issuers and wallets pass",Medium,did,architecture,interop,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Automate OIDF conformance tests in CI,"As QA, I want OIDF conformance tests automated in CI so that protocol regressions are blocked before release.
+
+Acceptance Criteria:
+- Conformance pipeline runs automatically
+- Versioned pass/fail reports are produced
+- Release gate blocks on critical failures",High,qa,conformance,ci,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability
+SSI,Story,Produce EUDI/eIDAS readiness checklist and roadmap,"As a product owner, I want an EUDI/eIDAS readiness checklist so that certification scope, timeline, and cost are predictable.
+
+Acceptance Criteria:
+- Technical and legal gap analysis is delivered
+- P0/P1/P2 priorities are defined
+- Milestone-based roadmap is approved",High,eudi,eidas,roadmap,,,OID4VCI/OID4VP/HAIP Compliance + EUDI Interoperability

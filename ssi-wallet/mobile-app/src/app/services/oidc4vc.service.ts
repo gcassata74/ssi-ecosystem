@@ -306,6 +306,7 @@ export class Oidc4vcService {
 
     const body = params.toString();
     let raw: Record<string, unknown>;
+    let statusCode: number | undefined;
 
     if (this.canUseNativeHttp()) {
       const response = await CapacitorHttp.post({
@@ -316,6 +317,7 @@ export class Oidc4vcService {
           Accept: 'application/json',
         },
       });
+      statusCode = typeof response.status === 'number' ? response.status : undefined;
       raw = (typeof response.data === 'string' ? this.tryParseJson(response.data) : response.data) ?? {};
     } else {
       raw = await firstValueFrom(
@@ -323,6 +325,10 @@ export class Oidc4vcService {
           headers: new HttpHeaders({ 'Content-Type': 'application/x-www-form-urlencoded' }),
         }),
       );
+    }
+
+    if (statusCode !== undefined && (statusCode < 200 || statusCode >= 300)) {
+      throw new Error(this.describeIssuerError(raw, 'Credential issuer token endpoint rejected the request.'));
     }
 
     const accessToken = raw?.['access_token'];
@@ -441,6 +447,7 @@ export class Oidc4vcService {
     };
 
     let response: Record<string, unknown> | undefined;
+    let statusCode: number | undefined;
 
     if (this.canUseNativeHttp()) {
       const result = await CapacitorHttp.post({
@@ -452,6 +459,7 @@ export class Oidc4vcService {
           Authorization: `Bearer ${accessToken}`,
         },
       });
+      statusCode = typeof result.status === 'number' ? result.status : undefined;
 
       response = typeof result.data === 'string' ? this.tryParseJson(result.data) : (result.data as Record<string, unknown>);
     } else {
@@ -463,6 +471,10 @@ export class Oidc4vcService {
           }),
         }),
       );
+    }
+
+    if (statusCode !== undefined && (statusCode < 200 || statusCode >= 300)) {
+      throw new Error(this.describeIssuerError(response, 'Credential issuer endpoint rejected the credential request.'));
     }
 
     return {
@@ -541,11 +553,33 @@ export class Oidc4vcService {
       return undefined;
     }
 
-    if (!('credential' in response)) {
+    if (!('credential' in response) || response.credential === undefined || response.credential === null) {
       throw new Error('Credential issuer response did not include a credential.');
     }
 
     return response.credential;
+  }
+
+  private describeIssuerError(raw: Record<string, unknown> | undefined, fallback: string): string {
+    if (!raw || typeof raw !== 'object') {
+      return fallback;
+    }
+
+    const error = typeof raw['error'] === 'string' ? raw['error'] : undefined;
+    const description =
+      typeof raw['error_description'] === 'string' ? raw['error_description'] : undefined;
+
+    if (error && description) {
+      return `${fallback} (${error}: ${description})`;
+    }
+    if (error) {
+      return `${fallback} (${error})`;
+    }
+    if (description) {
+      return `${fallback} (${description})`;
+    }
+
+    return fallback;
   }
 
   private parseUrl(raw: string): URL {
