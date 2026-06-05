@@ -27,6 +27,7 @@ This repository is a mono-repo for an end-to-end Self-Sovereign Identity demo. I
 
 - [What Is In This Repo](#what-is-in-this-repo)
 - [Architecture Overview](#architecture-overview)
+- [Keycloak Role In This Demo](#keycloak-role-in-this-demo)
 - [Main Runtime Flows](#main-runtime-flows)
 - [Module Details](#module-details)
   - [`ssi-issuer`](#ssi-issuer)
@@ -68,7 +69,8 @@ The issuer and verifier are now separate services. The sample client application
 - the wallet depends on the verifier as an OID4VP verifier endpoint,
 - the SDK makes the verifier client integration reusable,
 - `ssi-common` provides the shared domain types and utilities consumed by both backend services,
-- MongoDB stores dynamic platform data such as tenants and related persisted configuration.
+- MongoDB stores dynamic platform data such as tenants and related persisted configuration,
+- Keycloak is used as the platform identity service for operator/admin authentication.
 
 ```mermaid
 flowchart LR
@@ -107,6 +109,14 @@ flowchart LR
     WAL -. OID4VCI issuance .-> ISS
     WAL -. OID4VP presentation .-> VER
 ```
+
+## Keycloak Role In This Demo
+
+In this project, Keycloak is the platform authentication service for operator/admin identities.
+
+- Correct naming in standards terms: Keycloak acts as an `Identity Provider (IdP)` and, for OIDC/OAuth2, as an `OpenID Provider (OP)` / `Authorization Server`.
+- It is used for back-office authentication and claim/token management consumed by issuer-side admin/enrollment flows.
+- It is not the authorization server used by verifier-facing SSI login. That role is implemented by `ssi-verifier` in the OID4VP + OAuth2/PKCE flow for `ssi-client-application`.
 
 ## Main Runtime Flows
 
@@ -588,7 +598,7 @@ The root `docker-compose.yml` builds and starts:
 - `ssi-issuer` — exposed at `http://localhost:9090`
 - `ssi-verifier` — exposed at `http://localhost:9091`
 - `ssi-client` — exposed at `http://localhost:9092`
-- `keycloak` — Keycloak 26 in dev mode, exposed at `http://localhost:8180` (admin UI at `/admin`)
+- `keycloak` — Keycloak 26 in dev mode, exposed at `http://localhost:8180` (admin UI at `/admin`), used as IdP/OP authentication server for operator/admin identities
 - `ngrok-issuer` — optional tunnel for public issuer access
 - `ngrok-verifier` — optional tunnel for public verifier access
 
