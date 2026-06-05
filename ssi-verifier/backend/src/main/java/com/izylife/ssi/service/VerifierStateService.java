@@ -88,8 +88,12 @@ public class VerifierStateService {
         return lastVerifiedCredential.get();
     }
 
+    public OnboardingQrResponse getCurrentQr(String realm, String redirectUri, String clientId, String state) {
+        return buildCurrentVerifierQr(lastVerifiedCredential.get(), realm, redirectUri, clientId, state);
+    }
+
     public OnboardingQrResponse getCurrentQr(String realm) {
-        return buildCurrentVerifierQr(lastVerifiedCredential.get(), realm);
+        return buildCurrentVerifierQr(lastVerifiedCredential.get(), realm, null, null, null);
     }
 
     private void publishVerifierQr() {
@@ -99,11 +103,16 @@ public class VerifierStateService {
 
     private OnboardingStatusResponse buildVerifierStatus() {
         CredentialPreviewDto preview = lastVerifiedCredential.get();
-        return new OnboardingStatusResponse("VP_REQUEST", "IDLE", buildCurrentVerifierQr(preview, null), null);
+        return new OnboardingStatusResponse("VP_REQUEST", "IDLE", buildCurrentVerifierQr(preview, null, null, null, null), null);
     }
 
-    private OnboardingQrResponse buildCurrentVerifierQr(CredentialPreviewDto preview, String realm) {
-        Oidc4VpRequestService.AuthorizationRequest authorization = oidc4VpRequestService.createAuthorizationRequest(null, null, null, realm);
+    private OnboardingQrResponse buildCurrentVerifierQr(CredentialPreviewDto preview,
+                                                        String realm,
+                                                        String redirectUri,
+                                                        String clientId,
+                                                        String state) {
+        Oidc4VpRequestService.AuthorizationRequest authorization = oidc4VpRequestService
+                .createAuthorizationRequest(redirectUri, clientId, state, realm);
         String payload = authorization.qrPayload();
         String helperText = "State: " + authorization.state() + " | Nonce: " + authorization.nonce();
         OnboardingQrResponse qr = new OnboardingQrResponse(

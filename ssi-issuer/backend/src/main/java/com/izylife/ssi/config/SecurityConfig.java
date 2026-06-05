@@ -23,6 +23,7 @@ import com.izylife.ssi.config.AppProperties.SpidProperties;
 import com.izylife.ssi.security.SpidAuthenticationSuccessHandler;
 import com.nimbusds.jwt.JWT;
 import com.nimbusds.jwt.JWTParser;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
@@ -35,6 +36,8 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
+import org.springframework.security.oauth2.server.resource.web.BearerTokenResolver;
+import org.springframework.security.oauth2.server.resource.web.DefaultBearerTokenResolver;
 import org.springframework.security.saml2.provider.service.web.authentication.Saml2AuthenticationRequestResolver;
 import org.springframework.security.web.SecurityFilterChain;
 
@@ -46,6 +49,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @EnableWebSecurity
 public class SecurityConfig {
 
+    private static final String ISSUER_ENROLL_ENDPOINT = "/api/onboarding/issuer/enroll";
+
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http,
                                                    AppProperties appProperties,
@@ -56,13 +61,16 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)
                 .cors(Customizer.withDefaults())
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(HttpMethod.POST, "/api/onboarding/issuer/enroll").authenticated()
+                        .requestMatchers(HttpMethod.POST, ISSUER_ENROLL_ENDPOINT).authenticated()
                         .anyRequest().permitAll()
                 );
 
         JwtDecoder jwtDecoder = jwtDecoderProvider.getIfAvailable();
         if (jwtDecoder != null) {
-            http.oauth2ResourceServer(rs -> rs.jwt(jwt -> jwt.decoder(jwtDecoder)));
+            http.oauth2ResourceServer(rs -> rs
+                    .bearerTokenResolver(issuerEnrollBearerTokenResolver())
+                    .jwt(jwt -> jwt.decoder(jwtDecoder))
+            );
         }
 
         SpidProperties spid = appProperties.getSpid();
@@ -82,6 +90,16 @@ public class SecurityConfig {
         }
 
         return http.build();
+    }
+
+    private BearerTokenResolver issuerEnrollBearerTokenResolver() {
+        DefaultBearerTokenResolver delegate = new DefaultBearerTokenResolver();
+        return request -> shouldResolveBearerToken(request) ? delegate.resolve(request) : null;
+    }
+
+    private boolean shouldResolveBearerToken(HttpServletRequest request) {
+        return ISSUER_ENROLL_ENDPOINT.equals(request.getRequestURI())
+                && "POST".equalsIgnoreCase(request.getMethod());
     }
 
     @Bean

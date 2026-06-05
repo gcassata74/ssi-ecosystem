@@ -38,20 +38,25 @@ export class App implements OnInit, OnDestroy {
 
   readonly issuerUrl = `${issuerBaseUrl}/issuer?realm=${keycloakRealm}`;
 
+  private readonly dashboardPath = '/dashboard';
   private tokensSub?: Subscription;
 
   constructor(private readonly auth: SsiAuthService) {}
 
   ngOnInit(): void {
     this.authStatus = this.auth.clientInstance.authStatus;
+
+    const snapshot = this.auth.clientInstance.getTokenSnapshot();
+    if (snapshot?.accessToken) {
+      this.applyAuthenticatedState(snapshot.accessToken);
+    }
+
     this.tokensSub = this.auth.tokens$.subscribe((tokens) => {
-      if (!tokens) {
+      if (!tokens?.accessToken) {
         this.resetView();
         return;
       }
-      this.authStatus = 'authenticated';
-      this.accessToken = tokens.accessToken;
-      this.decodeAccessToken(tokens.accessToken);
+      this.applyAuthenticatedState(tokens.accessToken);
     });
   }
 
@@ -67,12 +72,55 @@ export class App implements OnInit, OnDestroy {
     this.auth.beginVerifierFlow().catch((error) => console.error('Unable to start verifier flow', error));
   }
 
+  private applyAuthenticatedState(accessToken: string): void {
+    this.authStatus = 'authenticated';
+    this.accessToken = accessToken;
+    this.decodeAccessToken(accessToken);
+    this.navigateToDashboard();
+  }
+
   private resetView(): void {
     this.authStatus = 'unauthenticated';
     this.accessToken = undefined;
     this.holderDid = undefined;
     this.credentialEntries = [];
     this.tokenPayloadJson = undefined;
+
+    if (this.isDashboardPath() && !this.hasOauthParams()) {
+      this.replacePath('/');
+    }
+  }
+
+  private navigateToDashboard(): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+    if (window.location.pathname !== this.dashboardPath) {
+      this.replacePath(this.dashboardPath);
+    }
+  }
+
+  private isDashboardPath(): boolean {
+    return this.isBrowser() && window.location.pathname === this.dashboardPath;
+  }
+
+  private hasOauthParams(): boolean {
+    if (!this.isBrowser()) {
+      return false;
+    }
+    const params = new URLSearchParams(window.location.search);
+    return params.has('code') || params.has('state') || params.has('error');
+  }
+
+  private replacePath(path: string): void {
+    if (!this.isBrowser()) {
+      return;
+    }
+    window.history.replaceState({}, document.title, path);
+  }
+
+  private isBrowser(): boolean {
+    return typeof window !== 'undefined';
   }
 
   private decodeAccessToken(token: string): void {

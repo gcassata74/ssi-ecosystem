@@ -21,7 +21,7 @@ FROM node:20-alpine AS lib-build
 WORKDIR /ssi-client-lib
 
 COPY ssi-client-lib/package*.json ./
-RUN npm ci
+RUN npm ci --ignore-scripts
 
 COPY ssi-client-lib .
 RUN npm run build && npm pack
@@ -35,6 +35,7 @@ WORKDIR /workspace
 #   /workspace/ssi-client-lib/          ← packed tgz
 #   /workspace/ssi-client-application/  ← Maven project
 COPY --from=lib-build /ssi-client-lib/ssi-issuer-auth-client-0.1.5.tgz ssi-client-lib/ssi-issuer-auth-client-0.1.5.tgz
+COPY ssi-client-lib ssi-client-lib
 
 COPY ssi-client-application/pom.xml ssi-client-application/pom.xml
 COPY ssi-client-application/backend/pom.xml ssi-client-application/backend/pom.xml

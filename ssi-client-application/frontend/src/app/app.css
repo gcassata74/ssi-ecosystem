@@ -239,3 +239,43 @@
   white-space: pre-wrap;
   word-break: break-word;
 }
+
+.dashboard-card {
+  max-width: 760px;
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #dbe5f0;
+  border-radius: 16px;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: 2rem;
+}
+
+.dashboard-header {
+  margin-bottom: 1.25rem;
+}
+
+.dashboard-title {
+  margin: 0;
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.dashboard-subtitle {
+  margin: 0.35rem 0 0;
+  color: #475569;
+  font-size: 0.95rem;
+}
+
+.credential-box {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1rem 1.1rem;
+}
+
+.empty-claims {
+  margin: 0.75rem 0 0;
+  color: #64748b;
+  font-size: 0.9rem;
+}

@@ -48,8 +48,11 @@ public class VerificationController {
 
     @GetMapping("/qr")
     public OnboardingQrResponse getVerifierQr(
-            @RequestParam(name = "realm", required = false) String realm) {
-        return verifierStateService.getCurrentQr(realm);
+            @RequestParam(name = "realm", required = false) String realm,
+            @RequestParam(name = "redirect_uri", required = false) String redirectUri,
+            @RequestParam(name = "client_id", required = false) String clientId,
+            @RequestParam(name = "state", required = false) String state) {
+        return verifierStateService.getCurrentQr(realm, redirectUri, clientId, state);
     }
 
     @PostMapping(path = "/presentations", consumes = MediaType.APPLICATION_JSON_VALUE)

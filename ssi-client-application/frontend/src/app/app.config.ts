@@ -10,6 +10,7 @@ const redirectUri = `${appOrigin}`;
 const dynamicClientId = redirectUri;
 
 export const issuerBaseUrl = 'https://izylife-issuer.eu.ngrok.io';
+export const verifierBaseUrl = 'https://izylife-verifier.eu.ngrok.io';
 export const keycloakRealm = 'izylife';
 
 export const appConfig: ApplicationConfig = {
@@ -19,7 +20,7 @@ export const appConfig: ApplicationConfig = {
     provideHttpClient(withInterceptorsFromDi()),
     provideSsiAuth({
       config: {
-        baseUrl: 'https://izylife-issuer.eu.ngrok.io',
+        baseUrl: verifierBaseUrl,
         clientId: dynamicClientId,
         redirectUri,
         portalPath: '/verifier',
