@@ -26,39 +26,41 @@
 
   @if (authStatus !== 'authenticated') {
 
-    <!-- Step 1: issuance -->
     <section class="card">
-      <div class="step-tag">Passo 1</div>
-      <h2 class="card-title">Ottieni la tua Staff Credential</h2>
+      <div class="step-tag">Step 1</div>
+      <h2 class="card-title">Get your Staff Credential</h2>
       <p class="card-text">
-        Accedi con il tuo account Izylife per ricevere la credenziale digitale
-        da conservare nel tuo wallet SSI.
+        Sign in with your Izylife account to receive your digital credential
+        and store it in your SSI wallet.
       </p>
       <button type="button" class="action-button" (click)="onGetCredentialClick()">
-        Ottieni credenziale
+        Get credential
       </button>
     </section>
 
-    <!-- Step 2: verification -->
     <section class="card">
-      <div class="step-tag">Passo 2</div>
-      <h2 class="card-title">Accedi al portale</h2>
+      <div class="step-tag">Step 2</div>
+      <h2 class="card-title">Sign in to the portal</h2>
       <p class="card-text">
-        Usa la credenziale appena ottenuta per autenticarti: scansiona il QR
-        con il tuo wallet SSI.
+        Use your newly issued credential to authenticate: scan the QR code
+        with your SSI wallet.
       </p>
       <button type="button" class="action-button" (click)="onLoginClick()">
-        Accedi con SSI Credential
+        Sign in with SSI Credential
       </button>
     </section>
 
   } @else {
 
-    <section class="card card--success">
-      <div class="success-icon">✓</div>
-      <h2 class="card-title">Accesso effettuato</h2>
+    <section class="dashboard-card">
+      <div class="dashboard-header">
+        <h2 class="dashboard-title">Dashboard</h2>
+        <p class="dashboard-subtitle">SSI login completed. Credentials received from wallet.</p>
+      </div>
 
-      <div class="identity-block">
+      <div class="credential-box">
+        <h3 class="claims-title">Credentials read from the device</h3>
+
         @if (holderDid) {
           <p class="holder-did">
             <span class="label">DID:</span>
@@ -68,20 +70,21 @@
 
         @if (credentialEntries.length) {
           <div class="claims">
-            <h3 class="claims-title">Credenziali verificate</h3>
             <dl>@for (entry of credentialEntries; track entry.key) {
               <div class="claim-row"><dt>{{ entry.key }}</dt><dd>{{ entry.value }}</dd></div>
             }</dl>
           </div>
-        }
-
-        @if (tokenPayloadJson) {
-          <details class="token-details">
-            <summary>Payload access token</summary>
-            <pre>{{ tokenPayloadJson }}</pre>
-          </details>
+        } @else {
+          <p class="empty-claims">No claims available in the token.</p>
         }
       </div>
+
+      @if (tokenPayloadJson) {
+        <details class="token-details">
+          <summary>Access token payload</summary>
+          <pre>{{ tokenPayloadJson }}</pre>
+        </details>
+      }
     </section>
 
   }
