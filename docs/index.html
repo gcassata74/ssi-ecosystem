@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Izylife SSI Ecosystem — Self-Sovereign Identity Platform</title>
+  <meta name="description" content="An open-source, end-to-end Self-Sovereign Identity platform. Credential issuance via OID4VCI, credential verification via OID4VP, and a reusable TypeScript SDK." />
+  <meta property="og:title" content="Izylife SSI Ecosystem" />
+  <meta property="og:description" content="Open-source SSI platform: OID4VCI issuance, OID4VP verification, TypeScript SDK, mobile wallet." />
+  <meta property="og:type" content="website" />
+  <style>
+    :root {
+      --bg:        #0b0f1a;
+      --surface:   #111827;
+      --surface2:  #1a2236;
+      --border:    #1e293b;
+      --accent:    #6366f1;
+      --accent2:   #818cf8;
+      --teal:      #2dd4bf;
+      --teal2:     #99f6e4;
+      --text:      #f1f5f9;
+      --muted:     #94a3b8;
+      --code-bg:   #0d1117;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      overflow-x: hidden;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.9rem 2rem;
+      background: rgba(11,15,26,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-decoration: none;
+      color: var(--text);
+    }
+    .nav-logo .dot {
+      width: 10px; height: 10px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 8px var(--accent);
+    }
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 1.8rem;
+      list-style: none;
+    }
+    .nav-links a {
+      color: var(--muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: color 0.2s;
+    }
+    .nav-links a:hover { color: var(--text); }
+    .btn-outline {
+      padding: 0.45rem 1.1rem;
+      border: 1px solid var(--accent);
+      border-radius: 6px;
+      color: var(--accent2);
+      font-size: 0.85rem;
+      text-decoration: none;
+      transition: background 0.2s, color 0.2s;
+    }
+    .btn-outline:hover { background: var(--accent); color: #fff; }
+
+    /* ─── HERO ─── */
+    .hero {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 7rem 2rem 5rem;
+      overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute;
+      top: -120px; left: 50%;
+      transform: translateX(-50%);
+      width: 800px; height: 600px;
+      background: radial-gradient(ellipse at center, rgba(99,102,241,0.18) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.9rem;
+      background: rgba(99,102,241,0.12);
+      border: 1px solid rgba(99,102,241,0.35);
+      border-radius: 999px;
+      font-size: 0.78rem;
+      color: var(--accent2);
+      margin-bottom: 1.6rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+    }
+    .hero h1 {
+      font-size: clamp(2.2rem, 5vw, 4rem);
+      font-weight: 800;
+      line-height: 1.15;
+      max-width: 820px;
+      margin-bottom: 1.4rem;
+    }
+    .hero h1 span {
+      background: linear-gradient(135deg, var(--accent2), var(--teal));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero p {
+      font-size: 1.15rem;
+      color: var(--muted);
+      max-width: 620px;
+      margin-bottom: 2.4rem;
+    }
+    .hero-cta {
+      display: flex;
+      gap: 1rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn-primary {
+      padding: 0.75rem 1.8rem;
+      background: var(--accent);
+      color: #fff;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      transition: background 0.2s, transform 0.15s;
+      box-shadow: 0 0 20px rgba(99,102,241,0.3);
+    }
+    .btn-primary:hover { background: #4f46e5; transform: translateY(-1px); }
+    .btn-secondary {
+      padding: 0.75rem 1.8rem;
+      background: var(--surface2);
+      color: var(--text);
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.95rem;
+      border: 1px solid var(--border);
+      transition: background 0.2s, transform 0.15s;
+    }
+    .btn-secondary:hover { background: #233048; transform: translateY(-1px); }
+
+    /* ─── ARCH DIAGRAM ─── */
+    .arch-wrapper {
+      width: 100%;
+      max-width: 900px;
+      margin: 3.5rem auto 0;
+      padding: 0 1rem;
+    }
+    .arch-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+    }
+    .arch-group {
+      background: var(--surface);
+      padding: 1.2rem 1.4rem;
+    }
+    .arch-group:nth-child(2) { background: var(--surface2); }
+    .arch-group-title {
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--muted);
+      margin-bottom: 0.8rem;
+    }
+    .arch-node {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.45rem 0.7rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      margin-bottom: 0.5rem;
+      color: var(--text);
+    }
+    .arch-node .icon { font-size: 1rem; }
+    .arch-node small { color: var(--muted); font-size: 0.72rem; display: block; }
+
+    /* ─── SECTION COMMONS ─── */
+    section { padding: 5rem 2rem; }
+    .section-inner { max-width: 1100px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--teal);
+      margin-bottom: 0.6rem;
+      font-weight: 600;
+    }
+    h2 {
+      font-size: clamp(1.7rem, 3vw, 2.4rem);
+      font-weight: 800;
+      margin-bottom: 1rem;
+    }
+    .section-lead {
+      color: var(--muted);
+      font-size: 1.05rem;
+      max-width: 620px;
+      margin-bottom: 3rem;
+    }
+
+    /* ─── PILLARS ─── */
+    .pillars {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+    }
+    .pillars-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 2rem;
+    }
+    .pillar {
+      padding: 2rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .pillar:hover { border-color: var(--accent); transform: translateY(-3px); }
+    .pillar-icon {
+      width: 44px; height: 44px;
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.4rem;
+      margin-bottom: 1rem;
+    }
+    .pillar-icon.indigo { background: rgba(99,102,241,0.15); }
+    .pillar-icon.teal   { background: rgba(45,212,191,0.12); }
+    .pillar-icon.purple { background: rgba(168,85,247,0.12); }
+    .pillar h3 { font-size: 1.05rem; margin-bottom: 0.5rem; }
+    .pillar p  { font-size: 0.9rem; color: var(--muted); line-height: 1.65; }
+
+    /* ─── MODULES ─── */
+    .modules-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+    .module-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.6rem;
+      transition: border-color 0.2s, transform 0.2s;
+    }
+    .module-card:hover { border-color: var(--accent2); transform: translateY(-2px); }
+    .module-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 0.8rem;
+    }
+    .module-name {
+      font-family: 'SFMono-Regular', Consolas, monospace;
+      font-size: 0.85rem;
+      color: var(--accent2);
+      background: rgba(99,102,241,0.1);
+      padding: 0.2rem 0.6rem;
+      border-radius: 4px;
+    }
+    .module-port {
+      font-size: 0.72rem;
+      color: var(--muted);
+      background: var(--surface2);
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      font-family: monospace;
+    }
+    .module-tech {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+      margin-top: 1rem;
+    }
+    .tag {
+      font-size: 0.72rem;
+      padding: 0.2rem 0.55rem;
+      border-radius: 4px;
+      background: var(--surface2);
+      color: var(--muted);
+    }
+    .module-card p { font-size: 0.88rem; color: var(--muted); line-height: 1.65; }
+
+    /* ─── FLOWS ─── */
+    .flows { background: var(--surface); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); }
+    .flow-tabs {
+      display: flex;
+      gap: 0.5rem;
+      margin-bottom: 2rem;
+    }
+    .tab-btn {
+      padding: 0.55rem 1.2rem;
+      border: 1px solid var(--border);
+      border-radius: 7px;
+      background: var(--bg);
+      color: var(--muted);
+      font-size: 0.88rem;
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+    .tab-btn.active {
+      border-color: var(--accent);
+      color: var(--accent2);
+      background: rgba(99,102,241,0.1);
+    }
+    .flow-content { display: none; }
+    .flow-content.active { display: block; }
+    .flow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      max-width: 700px;
+    }
+    .flow-step {
+      display: flex;
+      gap: 1.2rem;
+      position: relative;
+    }
+    .flow-step:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      left: 17px; top: 36px;
+      width: 2px;
+      bottom: 0;
+      background: var(--border);
+    }
+    .step-num {
+      flex-shrink: 0;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: rgba(99,102,241,0.15);
+      border: 1px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: var(--accent2);
+      position: relative;
+      z-index: 1;
+    }
+    .step-body {
+      padding-bottom: 1.6rem;
+      padding-top: 0.4rem;
+    }
+    .step-body strong { font-size: 0.92rem; }
+    .step-body p { font-size: 0.85rem; color: var(--muted); margin-top: 0.2rem; }
+    .step-actors {
+      display: flex;
+      gap: 0.4rem;
+      margin-top: 0.4rem;
+      flex-wrap: wrap;
+    }
+    .actor {
+      font-size: 0.72rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    /* ─── QUICKSTART ─── */
+    .quickstart-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+    }
+    @media (max-width: 700px) {
+      .quickstart-grid { grid-template-columns: 1fr; }
+      .arch-grid { grid-template-columns: 1fr; }
+      .nav-links { display: none; }
+    }
+    .code-block {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    .code-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.6rem 1rem;
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      color: var(--muted);
+    }
+    .code-dots { display: flex; gap: 5px; }
+    .code-dots span {
+      width: 10px; height: 10px; border-radius: 50%;
+    }
+    .code-dots span:nth-child(1) { background: #ff5f57; }
+    .code-dots span:nth-child(2) { background: #febc2e; }
+    .code-dots span:nth-child(3) { background: #28c840; }
+    pre {
+      padding: 1.2rem;
+      font-size: 0.82rem;
+      line-height: 1.7;
+      overflow-x: auto;
+      color: #e2e8f0;
+      font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .kw  { color: #c792ea; }
+    .fn  { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cm  { color: #546e7a; }
+    .num { color: #f78c6c; }
+
+    /* ─── STACK BADGES ─── */
+    .stack-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.8rem;
+      margin-top: 2rem;
+    }
+    .stack-badge {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.4rem 0.9rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    /* ─── FOOTER ─── */
+    footer {
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      padding: 3rem 2rem 2rem;
+    }
+    .footer-inner {
+      max-width: 1100px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 2rem;
+    }
+    .footer-top {
+      display: flex;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 2rem;
+    }
+    .footer-brand { max-width: 320px; }
+    .footer-brand p { color: var(--muted); font-size: 0.88rem; margin-top: 0.6rem; }
+    .footer-links h4 { font-size: 0.8rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); margin-bottom: 0.8rem; }
+    .footer-links ul { list-style: none; display: flex; flex-direction: column; gap: 0.45rem; }
+    .footer-links a { color: var(--muted); text-decoration: none; font-size: 0.88rem; transition: color 0.2s; }
+    .footer-links a:hover { color: var(--text); }
+    .footer-bottom {
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--border);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      color: var(--muted);
+    }
+    .license-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      padding: 0.2rem 0.6rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-size: 0.75rem;
+      color: var(--muted);
+    }
+
+    /* ─── DIVIDER ─── */
+    .divider {
+      width: 100%;
+      height: 1px;
+      background: linear-gradient(to right, transparent, var(--border), transparent);
+      margin: 0 auto;
+    }
+  </style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#">
+    <span class="dot"></span>
+    Izylife SSI Ecosystem
+  </a>
+  <ul class="nav-links">
+    <li><a href="#modules">Modules</a></li>
+    <li><a href="#flows">Flows</a></li>
+    <li><a href="#quickstart">Quick Start</a></li>
+    <li><a href="https://github.com/gcassata74/ssi-ecosystem" class="btn-outline">GitHub →</a></li>
+  </ul>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">Open Source · AGPL-3.0</div>
+  <h1>
+    End-to-End<br/>
+    <span>Self-Sovereign Identity</span><br/>
+    Platform
+  </h1>
+  <p>
+    A complete, production-reference implementation of credential issuance (OID4VCI),
+    credential verification (OID4VP), and a reusable TypeScript SDK — all in one mono-repo.
+  </p>
+  <div class="hero-cta">
+    <a href="#quickstart" class="btn-primary">Get Started</a>
+    <a href="https://github.com/gcassata74/ssi-ecosystem" class="btn-secondary">View on GitHub</a>
+  </div>
+
+  <div class="arch-wrapper">
+    <div class="arch-grid">
+      <div class="arch-group">
+        <div class="arch-group-title">Operator Side</div>
+        <div class="arch-node">
+          <span class="icon">🏛️</span>
+          <div>ssi-issuer<small>Spring Boot · Angular · :9090</small></div>
+        </div>
+        <div class="arch-node">
+          <span class="icon">🔍</span>
+          <div>ssi-verifier<small>Spring Boot · Angular · :9091</small></div>
+        </div>
+      </div>
+      <div class="arch-group">
+        <div class="arch-group-title">Core &amp; SDK</div>
+        <div class="arch-node">
+          <span class="icon">📦</span>
+          <div>ssi-common<small>Shared Java library</small></div>
+        </div>
+        <div class="arch-node">
+          <span class="icon">🔑</span>
+          <div>ssi-client-lib<small>TypeScript SDK · npm</small></div>
+        </div>
+        <div class="arch-node">
+          <span class="icon">💻</span>
+          <div>ssi-client-application<small>Angular + Spring · :9092</small></div>
+        </div>
+      </div>
+      <div class="arch-group">
+        <div class="arch-group-title">Holder Side</div>
+        <div class="arch-node">
+          <span class="icon">📱</span>
+          <div>ssi-wallet<small>Ionic · Angular · Capacitor</small></div>
+        </div>
+        <div class="arch-node" style="background:rgba(45,212,191,0.06); border-color:rgba(45,212,191,0.25);">
+          <span class="icon">🍃</span>
+          <div>MongoDB<small>Platform data store</small></div>
+        </div>
+        <div class="arch-node" style="background:rgba(45,212,191,0.06); border-color:rgba(45,212,191,0.25);">
+          <span class="icon">🔐</span>
+          <div>Keycloak<small>Operator IdP · :8180</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PILLARS -->
+<section class="pillars">
+  <div class="section-inner">
+    <div class="section-label">Why SSI Ecosystem</div>
+    <h2>Everything you need to build<br/>identity-first applications</h2>
+    <p class="section-lead">
+      From credential issuance to wallet-based verification — all standards-compliant,
+      all wired together, and all open source.
+    </p>
+    <div class="pillars-grid">
+      <div class="pillar">
+        <div class="pillar-icon indigo">🪪</div>
+        <h3>OID4VCI Credential Issuance</h3>
+        <p>
+          Issue verifiable credentials to wallet holders using the OpenID for Verifiable
+          Credential Issuance spec. Pre-authorized code grants, proof-of-possession JWTs,
+          and SPID operator login out of the box.
+        </p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon teal">✅</div>
+        <h3>OID4VP Credential Verification</h3>
+        <p>
+          Verify wallet presentations using OpenID for Verifiable Presentations. The
+          verifier acts as an OAuth 2.0 authorization server, issuing tokens that
+          represent the verified holder context for your application.
+        </p>
+      </div>
+      <div class="pillar">
+        <div class="pillar-icon purple">🛠️</div>
+        <h3>Reusable TypeScript SDK</h3>
+        <p>
+          Integrate SSI verification into any Angular app in minutes with
+          <code style="font-size:0.85em;color:var(--accent2)">@izylife/ssi-auth-client</code>.
+          PKCE, token lifecycle, redirect recovery, and an
+          <code style="font-size:0.85em;color:var(--accent2)">HttpClient</code> interceptor — all handled.
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MODULES -->
+<section id="modules">
+  <div class="section-inner">
+    <div class="section-label">Modules</div>
+    <h2>Six modules, one mono-repo</h2>
+    <p class="section-lead">Each module owns a clearly defined slice of the SSI stack and can be understood independently.</p>
+    <div class="modules-grid">
+
+      <div class="module-card">
+        <div class="module-header">
+          <span class="module-name">ssi-issuer</span>
+          <span class="module-port">:9090</span>
+        </div>
+        <p>
+          Operator issuer portal. Exposes OID4VCI metadata, credential offer endpoints, token
+          exchange, and credential signing. Manages the full onboarding state machine and
+          pushes real-time updates to the Angular UI over WebSockets. Supports SPID SAML
+          for operator authentication.
+        </p>
+        <div class="module-tech">
+          <span class="tag">Spring Boot 3.2</span>
+          <span class="tag">Angular 17</span>
+          <span class="tag">MongoDB</span>
+          <span class="tag">OID4VCI</span>
+          <span class="tag">SPID/SAML</span>
+        </div>
+      </div>
+
+      <div class="module-card">
+        <div class="module-header">
+          <span class="module-name">ssi-verifier</span>
+          <span class="module-port">:9091</span>
+        </div>
+        <p>
+          Operator verifier portal. Generates OID4VP request objects, accepts wallet
+          presentation responses, validates VP tokens, and issues short-lived authorization
+          codes. Doubles as an OAuth 2.0 authorization server for verifier-facing client apps.
+        </p>
+        <div class="module-tech">
+          <span class="tag">Spring Boot 3.2</span>
+          <span class="tag">Angular 17</span>
+          <span class="tag">MongoDB</span>
+          <span class="tag">OID4VP</span>
+          <span class="tag">OAuth 2.0</span>
+        </div>
+      </div>
+
+      <div class="module-card">
+        <div class="module-header">
+          <span class="module-name">ssi-client-application</span>
+          <span class="module-port">:9092</span>
+        </div>
+        <p>
+          Sample verifier-side integration. Shows how a third-party web app delegates
+          SSI verification to the verifier portal, exchanges the authorization code for
+          an access token, and decodes the <code style="font-size:0.82em;color:var(--accent2)">credential_preview</code> claims for display.
+        </p>
+        <div class="module-tech">
+          <span class="tag">Spring Boot 3.5</span>
+          <span class="tag">Angular 20</span>
+          <span class="tag">ssi-client-lib</span>
+          <span class="tag">PKCE</span>
+        </div>
+      </div>
+
+      <div class="module-card">
+        <div class="module-header">
+          <span class="module-name">ssi-client-lib</span>
+          <span class="module-port">npm package</span>
+        </div>
+        <p>
+          Reusable TypeScript SDK. Provides a framework-agnostic core client and an
+          Angular integration layer. Handles PKCE, state management, redirect callbacks,
+          token refresh scheduling, storage, and an optional
+          <code style="font-size:0.82em;color:var(--accent2)">HttpClient</code> bearer token interceptor.
+        </p>
+        <div class="module-tech">
+          <span class="tag">TypeScript</span>
+          <span class="tag">Angular 20</span>
+          <span class="tag">tsup</span>
+          <span class="tag">PKCE</span>
+        </div>
+      </div>
+
+      <div class="module-card">
+        <div class="module-header">
+          <span class="module-name">ssi-wallet</span>
+          <span class="module-port">:8100 (dev)</span>
+        </div>
+        <p>
+          Holder-side mobile wallet. Scans QR codes, parses credential offers and
+          presentation requests, redeems OID4VCI tokens, builds and submits VP tokens,
+          stores credentials securely, manages <code style="font-size:0.82em;color:var(--accent2)">did:key</code> identities, and supports biometric auth.
+        </p>
+        <div class="module-tech">
+          <span class="tag">Ionic 8</span>
+          <span class="tag">Angular 20</span>
+          <span class="tag">Capacitor 7</span>
+          <span class="tag">Android</span>
+        </div>
+      </div>
+
+      <div class="module-card">
+        <div class="module-header">
+          <span class="module-name">ssi-common</span>
+          <span class="module-port">library</span>
+        </div>
+        <p>
+          Shared Java library consumed by both issuer and verifier backends.
+          Centralizes common DTOs, domain types, and utilities to avoid duplication
+          across services. Built as part of the root Maven reactor and installed
+          into the local repository before other modules.
+        </p>
+        <div class="module-tech">
+          <span class="tag">Java 17</span>
+          <span class="tag">Maven</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- FLOWS -->
+<section class="flows" id="flows">
+  <div class="section-inner">
+    <div class="section-label">Runtime Flows</div>
+    <h2>How it works end-to-end</h2>
+    <p class="section-lead">Two main runtime paths — credential issuance for onboarding, and credential presentation for login.</p>
+
+    <div class="flow-tabs">
+      <button class="tab-btn active" onclick="showTab('issuance', this)">Credential Issuance (OID4VCI)</button>
+      <button class="tab-btn" onclick="showTab('verification', this)">Verifier Login (OID4VP)</button>
+    </div>
+
+    <div id="tab-issuance" class="flow-content active">
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Operator requests credential offer</strong>
+            <p>The issuer portal generates a QR code containing a credential offer URI.</p>
+            <div class="step-actors"><span class="actor">Issuer Portal</span><span class="actor">ssi-issuer</span></div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Wallet scans and resolves the offer</strong>
+            <p>The holder's wallet scans the QR, fetches the issuer metadata and resolves the credential offer.</p>
+            <div class="step-actors"><span class="actor">ssi-wallet</span><span class="actor">ssi-issuer</span></div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Token exchange with pre-authorized code</strong>
+            <p>Wallet POSTs to <code style="color:var(--accent2)">/oidc4vci/token</code> and receives an access token and <code style="color:var(--accent2)">c_nonce</code>.</p>
+            <div class="step-actors"><span class="actor">ssi-wallet</span><span class="actor">ssi-issuer</span></div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Wallet builds a proof JWT and requests the credential</strong>
+            <p>Proof is signed with the wallet's EC key material. The issuer signs and returns the verifiable credential.</p>
+            <div class="step-actors"><span class="actor">ssi-wallet</span><span class="actor">ssi-issuer</span></div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <strong>Credential stored and onboarding completed</strong>
+            <p>The wallet stores the credential and notifies the issuer. The UI receives a WebSocket update marking onboarding complete.</p>
+            <div class="step-actors"><span class="actor">ssi-wallet</span><span class="actor">ssi-issuer</span><span class="actor">Issuer Portal</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div id="tab-verification" class="flow-content">
+      <div class="flow-steps">
+        <div class="flow-step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <strong>Client app starts the verifier flow</strong>
+            <p>The Angular app calls <code style="color:var(--accent2)">beginVerifierFlow()</code> on the SDK, which generates PKCE params and redirects the browser to the verifier portal.</p>
+            <div class="step-actors"><span class="actor">ssi-client-application</span><span class="actor">ssi-client-lib</span></div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <strong>Verifier portal shows a QR code</strong>
+            <p>The verifier generates a request object and renders a QR for the wallet to scan.</p>
+            <div class="step-actors"><span class="actor">ssi-verifier</span><span class="actor">Verifier Portal</span></div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <strong>Wallet submits a Verifiable Presentation</strong>
+            <p>Wallet fetches the request object, selects matching credentials, builds a VP token, and POSTs to <code style="color:var(--accent2)">/oidc4vp/responses</code>.</p>
+            <div class="step-actors"><span class="actor">ssi-wallet</span><span class="actor">ssi-verifier</span></div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <strong>Verifier validates and issues an authorization code</strong>
+            <p>VP token, nonce, state, and descriptor map are verified. A short-lived authorization code is issued and the browser is redirected back.</p>
+            <div class="step-actors"><span class="actor">ssi-verifier</span></div>
+          </div>
+        </div>
+        <div class="flow-step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <strong>SDK exchanges the code for tokens</strong>
+            <p>The SDK completes the PKCE exchange at <code style="color:var(--accent2)">/oauth2/token</code>, persists the access/refresh tokens, and emits them to the Angular app.</p>
+            <div class="step-actors"><span class="actor">ssi-client-lib</span><span class="actor">ssi-verifier</span><span class="actor">ssi-client-application</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK START -->
+<section id="quickstart">
+  <div class="section-inner">
+    <div class="section-label">Quick Start</div>
+    <h2>Up and running in minutes</h2>
+    <p class="section-lead">Prerequisites: Java 17+, Maven 3.9+, Node.js 18+, MongoDB 7+ or Docker.</p>
+
+    <div class="quickstart-grid">
+      <div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><span></span><span></span><span></span></div>
+            <span>Start all services</span>
+          </div>
+          <pre><span class="cm"># 1. Start MongoDB</span>
+docker run --name ssi-mongo \
+  -p 27017:27017 -d mongo:7
+
+<span class="cm"># 2. Build shared library</span>
+mvn -pl ssi-common install <span class="kw">-DskipTests</span>
+
+<span class="cm"># 3. Start services via Makefile</span>
+make run-ssi-demo
+
+<span class="cm"># Issuer  → http://localhost:9090</span>
+<span class="cm"># Verifier → http://localhost:9091</span>
+<span class="cm"># Client  → http://localhost:9092</span></pre>
+        </div>
+      </div>
+      <div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><span></span><span></span><span></span></div>
+            <span>Install the TypeScript SDK</span>
+          </div>
+          <pre><span class="cm"># Install from npm</span>
+npm install <span class="str">@izylife/ssi-auth-client</span>
+
+<span class="cm"># Angular app.config.ts</span>
+<span class="kw">export const</span> appConfig<span class="kw">:</span> ApplicationConfig = {
+  providers: [
+    <span class="fn">provideSsiAuth</span>({
+      baseUrl: <span class="str">'http://localhost:9091'</span>,
+      redirectUri: window.location.origin,
+      clientId:    window.location.origin,
+      portalPath:  <span class="str">'/verifier'</span>,
+    })
+  ]
+};</pre>
+        </div>
+      </div>
+      <div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><span></span><span></span><span></span></div>
+            <span>Docker Compose (issuer + verifier + keycloak)</span>
+          </div>
+          <pre><span class="cm"># Copy env template and configure</span>
+cp .env.example .env
+
+<span class="cm"># Start full stack</span>
+docker compose up --build
+
+<span class="cm"># Keycloak admin UI</span>
+<span class="cm"># → http://localhost:8180/admin</span>
+<span class="cm"># Issuer   → http://localhost:9090</span>
+<span class="cm"># Verifier → http://localhost:9091</span></pre>
+        </div>
+      </div>
+      <div>
+        <div class="code-block">
+          <div class="code-header">
+            <div class="code-dots"><span></span><span></span><span></span></div>
+            <span>Run the wallet (web / Android)</span>
+          </div>
+          <pre><span class="cm"># Web dev mode</span>
+<span class="kw">cd</span> ssi-wallet
+make serve
+<span class="cm"># → http://localhost:8100</span>
+
+<span class="cm"># Android (first time)</span>
+make add-android
+make build
+make sync
+make run-android</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="stack-row">
+      <div class="stack-badge">☕ Java 17+</div>
+      <div class="stack-badge">🔶 Maven 3.9+</div>
+      <div class="stack-badge">🟢 Node.js 18+</div>
+      <div class="stack-badge">🍃 MongoDB 7+</div>
+      <div class="stack-badge">🔐 Keycloak 26</div>
+      <div class="stack-badge">📱 Capacitor 7</div>
+      <div class="stack-badge">🐳 Docker</div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-top">
+      <div class="footer-brand">
+        <div class="nav-logo" style="margin-bottom:0.6rem">
+          <span class="dot"></span>
+          Izylife SSI Ecosystem
+        </div>
+        <p>
+          An open-source, end-to-end Self-Sovereign Identity platform built by
+          Izylife Solutions s.r.l. Designed as a production-grade reference
+          implementation of OID4VCI and OID4VP.
+        </p>
+      </div>
+      <div class="footer-links">
+        <h4>Modules</h4>
+        <ul>
+          <li><a href="https://github.com/gcassata74/ssi-ecosystem/tree/main/ssi-issuer">ssi-issuer</a></li>
+          <li><a href="https://github.com/gcassata74/ssi-ecosystem/tree/main/ssi-verifier">ssi-verifier</a></li>
+          <li><a href="https://github.com/gcassata74/ssi-ecosystem/tree/main/ssi-client-lib">ssi-client-lib</a></li>
+          <li><a href="https://github.com/gcassata74/ssi-ecosystem/tree/main/ssi-wallet">ssi-wallet</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Project</h4>
+        <ul>
+          <li><a href="https://github.com/gcassata74/ssi-ecosystem">GitHub Repository</a></li>
+          <li><a href="https://github.com/gcassata74/ssi-ecosystem/blob/main/README.md">Documentation</a></li>
+          <li><a href="https://github.com/gcassata74/ssi-ecosystem/blob/main/CONTRIBUTING.md">Contributing</a></li>
+          <li><a href="https://github.com/gcassata74/ssi-ecosystem/blob/main/CODE_OF_CONDUCT.md">Code of Conduct</a></li>
+        </ul>
+      </div>
+      <div class="footer-links">
+        <h4>Standards</h4>
+        <ul>
+          <li><a href="https://openid.net/specs/openid-4-verifiable-credential-issuance-1_0.html">OID4VCI Spec</a></li>
+          <li><a href="https://openid.net/specs/openid-4-verifiable-presentations-1_0.html">OID4VP Spec</a></li>
+          <li><a href="https://www.w3.org/TR/vc-data-model/">W3C VC Data Model</a></li>
+          <li><a href="https://www.rfc-editor.org/rfc/rfc7636">PKCE RFC 7636</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2026 Izylife Solutions s.r.l. — Giuseppe Cassata</span>
+      <span class="license-badge">📄 AGPL-3.0-only</span>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function showTab(name, btn) {
+    document.querySelectorAll('.flow-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + name).classList.add('active');
+    btn.classList.add('active');
+  }
+</script>
+
+</body>
+</html>
