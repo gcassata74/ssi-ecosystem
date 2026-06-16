@@ -3,14 +3,83 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Izylife SSI Ecosystem | Identita digitale verificabile per il business</title>
-  <meta name="description" content="Trasforma onboarding, accesso e compliance con una piattaforma SSI pronta per l'integrazione: OID4VCI, OID4VP, SDK TypeScript e wallet mobile." />
-  <meta property="og:title" content="Izylife SSI Ecosystem" />
-  <meta property="og:description" content="Piattaforma SSI end-to-end per emissione e verifica credenziali digitali." />
+  <title>Piattaforma SSI OID4VCI/OID4VP | Verifica Identita Digitale Business - Izylife</title>
+  <meta name="description" content="Piattaforma Self-Sovereign Identity per emissione e verifica credenziali digitali: OID4VCI, OID4VP, wallet mobile e SDK TypeScript per onboarding, login e compliance." />
+  <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
+  <meta name="author" content="Izylife Solutions s.r.l." />
+  <meta name="theme-color" content="#0f766e" />
+  <link rel="canonical" href="https://gcassata74.github.io/ssi-ecosystem/" />
+
+  <meta property="og:locale" content="it_IT" />
   <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Izylife SSI Ecosystem" />
+  <meta property="og:title" content="Izylife SSI Ecosystem | Piattaforma SSI per onboarding e verifica identita" />
+  <meta property="og:description" content="Stack SSI end-to-end con OID4VCI e OID4VP per emettere e verificare credenziali digitali in applicazioni business." />
+  <meta property="og:url" content="https://gcassata74.github.io/ssi-ecosystem/" />
+
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Izylife SSI Ecosystem | Piattaforma SSI business" />
+  <meta name="twitter:description" content="Emissione e verifica credenziali digitali con OID4VCI/OID4VP, wallet mobile e SDK TypeScript." />
+
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Manrope:wght@400;500;700;800&display=swap" rel="stylesheet" />
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "SoftwareApplication",
+    "name": "Izylife SSI Ecosystem",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Web, Android",
+    "description": "Piattaforma Self-Sovereign Identity open source per emissione e verifica di credenziali digitali con OID4VCI e OID4VP.",
+    "url": "https://gcassata74.github.io/ssi-ecosystem/",
+    "codeRepository": "https://github.com/gcassata74/ssi-ecosystem",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "EUR"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "Izylife Solutions s.r.l."
+    }
+  }
+  </script>
+
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "FAQPage",
+    "mainEntity": [
+      {
+        "@type": "Question",
+        "name": "Cos'e una piattaforma SSI?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Una piattaforma SSI permette di emettere e verificare credenziali digitali in modo crittograficamente verificabile, con controllo dei dati lato utente."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "Quali standard supporta Izylife SSI Ecosystem?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "La piattaforma supporta OpenID for Verifiable Credential Issuance (OID4VCI), OpenID for Verifiable Presentations (OID4VP), OAuth2 con PKCE e wallet-based verification."
+        }
+      },
+      {
+        "@type": "Question",
+        "name": "A cosa serve nel business?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Serve a ridurre attrito su onboarding e login, migliorare fiducia e sicurezza, e abilitare processi di compliance digitale basati su credenziali verificabili."
+        }
+      }
+    ]
+  }
+  </script>
+
   <style>
     :root {
       --ink: #111827;
@@ -284,10 +353,11 @@
       font-size: 0.92rem;
     }
     .check-list li::before {
-      content: "✓";
+      content: "OK";
       color: var(--ok);
       margin-right: 0.5rem;
       font-weight: 800;
+      font-size: 0.76rem;
     }
     .stack-grid {
       padding: 1.6rem;
@@ -338,6 +408,27 @@
     }
     .step p { font-size: 0.88rem; color: var(--muted); }
 
+    .faq-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(210px, 1fr));
+      gap: 1rem;
+    }
+    .faq-item {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1.05rem;
+    }
+    .faq-item h3 {
+      font-size: 0.95rem;
+      margin-bottom: 0.4rem;
+      color: var(--ink);
+    }
+    .faq-item p {
+      font-size: 0.88rem;
+      color: var(--muted);
+    }
+
     .cta {
       padding: 2.2rem;
       background: linear-gradient(135deg, #0f172a, #1e293b 55%, #334155);
@@ -375,13 +466,14 @@
 
     @media (max-width: 980px) {
       .value-grid { grid-template-columns: 1fr 1fr; }
+      .faq-grid { grid-template-columns: 1fr 1fr; }
       .panel-row { grid-template-columns: 1fr; }
       .panel-copy { border-right: 0; border-bottom: 1px solid var(--line); }
       .kpi { grid-template-columns: 1fr 1fr; }
     }
     @media (max-width: 760px) {
       .nav-links li:not(:last-child) { display: none; }
-      .value-grid, .steps { grid-template-columns: 1fr; }
+      .value-grid, .steps, .faq-grid { grid-template-columns: 1fr; }
       .hero { padding-top: 3rem; }
       .hero-box { border-radius: 20px; }
     }
@@ -398,6 +490,7 @@
         <li><a href="#benefici">Benefici</a></li>
         <li><a href="#piattaforma">Piattaforma</a></li>
         <li><a href="#roadmap">Attivazione</a></li>
+        <li><a href="#faq">FAQ</a></li>
         <li><a class="btn btn-soft" href="https://github.com/gcassata74/ssi-ecosystem">GitHub</a></li>
       </ul>
     </div>
@@ -407,7 +500,7 @@
     <div class="container">
       <div class="hero-box">
         <span class="badge">Identity Tech per prodotti e servizi regolamentati</span>
-        <h1>Fai crescere conversione e fiducia con credenziali verificabili.</h1>
+        <h1>Piattaforma SSI per onboarding, verifica identita digitale e compliance.</h1>
         <p>
           Izylife SSI Ecosystem riduce attrito su onboarding e login, con verifica di identita e attributi
           tramite standard aperti OID4VCI/OID4VP. Integrazione rapida, controllo completo, esperienza utente moderna.
@@ -444,110 +537,143 @@
     </div>
   </header>
 
-  <section id="benefici">
-    <div class="container">
-      <div class="eyebrow">Perche conviene al business</div>
-      <h2>Da progetto tecnico a leva commerciale concreta</h2>
-      <p class="lead">
-        La piattaforma e disegnata per team che devono vendere servizi digitali con onboarding sicuro,
-        accessi affidabili e governance dei dati verificabile.
-      </p>
-      <div class="value-grid">
-        <article class="value-card">
-          <div class="value-icon" style="background: var(--mint);">🚀</div>
-          <h3>Time-to-market ridotto</h3>
-          <p>Componenti gia orchestrati per partire in giorni, non in mesi di integrazione custom.</p>
-        </article>
-        <article class="value-card">
-          <div class="value-icon" style="background: var(--gold-soft);">🛡️</div>
-          <h3>Compliance by design</h3>
-          <p>Protocolli standard e tracciabilita dei flussi per supportare audit e requisiti regolatori.</p>
-        </article>
-        <article class="value-card">
-          <div class="value-icon" style="background: #dbeafe;">🤝</div>
-          <h3>Fiducia misurabile</h3>
-          <p>Verifica credenziali in tempo reale per abbattere frodi, errori manuali e falsi positivi.</p>
-        </article>
+  <main>
+    <section id="benefici">
+      <div class="container">
+        <div class="eyebrow">Perche conviene al business</div>
+        <h2>Da progetto tecnico a leva commerciale concreta</h2>
+        <p class="lead">
+          La piattaforma e disegnata per team che devono vendere servizi digitali con onboarding sicuro,
+          accessi affidabili e governance dei dati verificabile.
+        </p>
+        <div class="value-grid">
+          <article class="value-card">
+            <div class="value-icon" style="background: var(--mint);">01</div>
+            <h3>Time-to-market ridotto</h3>
+            <p>Componenti gia orchestrati per partire in giorni, non in mesi di integrazione custom.</p>
+          </article>
+          <article class="value-card">
+            <div class="value-icon" style="background: var(--gold-soft);">02</div>
+            <h3>Compliance by design</h3>
+            <p>Protocolli standard e tracciabilita dei flussi per supportare audit e requisiti regolatori.</p>
+          </article>
+          <article class="value-card">
+            <div class="value-icon" style="background: #dbeafe;">03</div>
+            <h3>Fiducia misurabile</h3>
+            <p>Verifica credenziali in tempo reale per abbattere frodi, errori manuali e falsi positivi.</p>
+          </article>
+        </div>
       </div>
-    </div>
-  </section>
+    </section>
 
-  <section id="piattaforma">
-    <div class="container">
-      <div class="eyebrow">Cosa include</div>
-      <h2>Piattaforma pronta per emissione, verifica e integrazione applicativa</h2>
-      <p class="lead">
-        Un'architettura modulare che copre issuer, verifier, wallet e SDK client, con stack moderno e
-        flussi gia testati in ambienti di sviluppo reali.
-      </p>
-      <div class="panel">
-        <div class="panel-row">
-          <div class="panel-copy">
-            <h3 style="font-family:'Space Grotesk',sans-serif;color:var(--ink);font-size:1.2rem;">Capacita chiave</h3>
-            <ul class="check-list">
-              <li>Emissione credenziali con OID4VCI e prova crittografica del holder.</li>
-              <li>Verifica presentazioni con OID4VP e tokenizzazione del contesto utente.</li>
-              <li>SDK TypeScript con PKCE, callback handling e gestione lifecycle token.</li>
-              <li>Wallet mobile per QR scan, storage sicuro e gestione identita did:key.</li>
-              <li>Base Java condivisa per ridurre duplicazioni e semplificare manutenzione.</li>
-            </ul>
+    <section id="piattaforma">
+      <div class="container">
+        <div class="eyebrow">Cosa include</div>
+        <h2>Piattaforma pronta per emissione, verifica e integrazione applicativa</h2>
+        <p class="lead">
+          Un'architettura modulare che copre issuer, verifier, wallet e SDK client, con stack moderno e
+          flussi gia testati in ambienti di sviluppo reali.
+        </p>
+        <div class="panel">
+          <div class="panel-row">
+            <div class="panel-copy">
+              <h3 style="font-family:'Space Grotesk',sans-serif;color:var(--ink);font-size:1.2rem;">Capacita chiave</h3>
+              <ul class="check-list">
+                <li>Emissione credenziali con OID4VCI e prova crittografica del holder.</li>
+                <li>Verifica presentazioni con OID4VP e tokenizzazione del contesto utente.</li>
+                <li>SDK TypeScript con PKCE, callback handling e gestione lifecycle token.</li>
+                <li>Wallet mobile per QR scan, storage sicuro e gestione identita did:key.</li>
+                <li>Base Java condivisa per ridurre duplicazioni e semplificare manutenzione.</li>
+              </ul>
+            </div>
+            <div class="stack-grid">
+              <div class="chip">Java 17+</div>
+              <div class="chip">Spring Boot</div>
+              <div class="chip">Angular</div>
+              <div class="chip">TypeScript SDK</div>
+              <div class="chip">Ionic + Capacitor</div>
+              <div class="chip">MongoDB</div>
+              <div class="chip">OID4VCI</div>
+              <div class="chip">OID4VP</div>
+              <div class="chip">OAuth2 + PKCE</div>
+              <div class="chip">Keycloak/SPID</div>
+            </div>
           </div>
-          <div class="stack-grid">
-            <div class="chip">Java 17+</div>
-            <div class="chip">Spring Boot</div>
-            <div class="chip">Angular</div>
-            <div class="chip">TypeScript SDK</div>
-            <div class="chip">Ionic + Capacitor</div>
-            <div class="chip">MongoDB</div>
-            <div class="chip">OID4VCI</div>
-            <div class="chip">OID4VP</div>
-            <div class="chip">OAuth2 + PKCE</div>
-            <div class="chip">Keycloak/SPID</div>
+        </div>
+      </div>
+    </section>
+
+    <section id="roadmap">
+      <div class="container">
+        <div class="eyebrow">Come partire</div>
+        <h2>Percorso di attivazione in 3 step</h2>
+        <p class="lead">Approccio pragmatico: ambiente demo, integrazione client e messa a terra dei tuoi use case.</p>
+        <div class="steps">
+          <article class="step">
+            <span class="step-index">1</span>
+            <h3>Setup rapido</h3>
+            <p>Avvio stack locale con issuer, verifier e servizi di supporto dal mono-repo.</p>
+          </article>
+          <article class="step">
+            <span class="step-index">2</span>
+            <h3>Integrazione applicativa</h3>
+            <p>Collegamento del client con SDK TypeScript e gestione login basato su credenziali verificabili.</p>
+          </article>
+          <article class="step">
+            <span class="step-index">3</span>
+            <h3>Go-live guidato</h3>
+            <p>Hardening dei flussi, monitoraggio e definizione KPI di conversione e sicurezza.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="container">
+        <div class="eyebrow">FAQ SEO</div>
+        <h2>Domande frequenti su SSI e credenziali digitali</h2>
+        <p class="lead">Sezione orientata alla ricerca organica su intent informativi e commerciali.</p>
+        <div class="faq-grid">
+          <article class="faq-item">
+            <h3>Cos'e una piattaforma SSI?</h3>
+            <p>
+              Una piattaforma SSI (Self-Sovereign Identity) abilita credenziali digitali verificabili,
+              con controllo dei dati lato utente e verifica crittografica lato servizio.
+            </p>
+          </article>
+          <article class="faq-item">
+            <h3>Che differenza c'e tra OID4VCI e OID4VP?</h3>
+            <p>
+              OID4VCI gestisce l'emissione di credenziali digitali al wallet. OID4VP gestisce la presentazione
+              e verifica delle credenziali durante login, onboarding o autorizzazione.
+            </p>
+          </article>
+          <article class="faq-item">
+            <h3>Perche usarla in un contesto enterprise?</h3>
+            <p>
+              Riduce frodi e attrito utente, migliora auditabilita e accelera il rilascio di servizi digitali
+              ad alta fiducia in ambito fintech, healthtech, HR e servizi regolamentati.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="cta">
+      <div class="container">
+        <div class="cta">
+          <div>
+            <h2>Vuoi validare subito il fit sul tuo caso d'uso?</h2>
+            <p>Parti dal repository e dalla documentazione tecnica, poi costruisci una demo end-to-end con il tuo team.</p>
+          </div>
+          <div style="display:flex;gap:0.7rem;flex-wrap:wrap;">
+            <a class="btn btn-primary" href="https://github.com/gcassata74/ssi-ecosystem">Apri il repository</a>
+            <a class="btn btn-soft" href="https://github.com/gcassata74/ssi-ecosystem/blob/main/README.md">Vai al Quick Start</a>
           </div>
         </div>
       </div>
-    </div>
-  </section>
-
-  <section id="roadmap">
-    <div class="container">
-      <div class="eyebrow">Come partire</div>
-      <h2>Percorso di attivazione in 3 step</h2>
-      <p class="lead">Approccio pragmatico: ambiente demo, integrazione client e messa a terra dei tuoi use case.</p>
-      <div class="steps">
-        <article class="step">
-          <span class="step-index">1</span>
-          <h3>Setup rapido</h3>
-          <p>Avvio stack locale con issuer, verifier e servizi di supporto dal mono-repo.</p>
-        </article>
-        <article class="step">
-          <span class="step-index">2</span>
-          <h3>Integrazione applicativa</h3>
-          <p>Collegamento del client con SDK TypeScript e gestione login basato su credenziali verificabili.</p>
-        </article>
-        <article class="step">
-          <span class="step-index">3</span>
-          <h3>Go-live guidato</h3>
-          <p>Hardening dei flussi, monitoraggio e definizione KPI di conversione e sicurezza.</p>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <section id="cta">
-    <div class="container">
-      <div class="cta">
-        <div>
-          <h2>Vuoi validare subito il fit sul tuo caso d'uso?</h2>
-          <p>Parti dal repository e dalla documentazione tecnica, poi costruisci una demo end-to-end con il tuo team.</p>
-        </div>
-        <div style="display:flex;gap:0.7rem;flex-wrap:wrap;">
-          <a class="btn btn-primary" href="https://github.com/gcassata74/ssi-ecosystem">Apri il repository</a>
-          <a class="btn btn-soft" href="https://github.com/gcassata74/ssi-ecosystem/blob/main/README.md">Vai al Quick Start</a>
-        </div>
-      </div>
-    </div>
-  </section>
+    </section>
+  </main>
 
   <footer>
     <div class="container footer-row">
