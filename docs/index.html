@@ -376,6 +376,28 @@
       background: #fff;
       text-align: center;
     }
+    .diagram-grid {
+      margin-top: 1rem;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(260px, 1fr));
+      gap: 1rem;
+    }
+    .diagram-card {
+      background: #fff;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      padding: 1rem;
+      overflow: auto;
+    }
+    .diagram-card h3 {
+      font-family: "Space Grotesk", sans-serif;
+      color: var(--ink);
+      font-size: 1rem;
+      margin-bottom: 0.7rem;
+    }
+    .diagram-card .mermaid {
+      min-width: 520px;
+    }
 
     .steps {
       display: grid;
@@ -470,12 +492,14 @@
       .panel-row { grid-template-columns: 1fr; }
       .panel-copy { border-right: 0; border-bottom: 1px solid var(--line); }
       .kpi { grid-template-columns: 1fr 1fr; }
+      .diagram-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 760px) {
       .nav-links li:not(:last-child) { display: none; }
       .value-grid, .steps, .faq-grid { grid-template-columns: 1fr; }
       .hero { padding-top: 3rem; }
       .hero-box { border-radius: 20px; }
+      .diagram-card .mermaid { min-width: 440px; }
     }
   </style>
 </head>
@@ -600,6 +624,35 @@
             </div>
           </div>
         </div>
+        <div class="diagram-grid">
+          <article class="diagram-card">
+            <h3>Architecture overview</h3>
+            <div class="mermaid">
+              flowchart LR
+                Issuer["SSI Issuer"] --> Wallet["Mobile Wallet"]
+                Wallet --> Verifier["SSI Verifier"]
+                Client["Client Application"] --> SDK["TypeScript SDK"]
+                SDK --> Verifier
+                Issuer --> Common["Shared SSI Common"]
+                Verifier --> Common
+            </div>
+          </article>
+          <article class="diagram-card">
+            <h3>Verification flow (OID4VP)</h3>
+            <div class="mermaid">
+              sequenceDiagram
+                participant U as User
+                participant C as Client App
+                participant W as Wallet
+                participant V as Verifier
+                C->>V: Start verification
+                V-->>C: Presentation request (QR/link)
+                U->>W: Scan and consent
+                W->>V: Verifiable Presentation
+                V-->>C: Verification result + token
+            </div>
+          </article>
+        </div>
       </div>
     </section>
 
@@ -681,5 +734,31 @@
       <span>© 2026 Izylife Solutions s.r.l. · AGPL-3.0-only</span>
     </div>
   </footer>
+  <script type="module">
+    import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+
+    mermaid.initialize({
+      startOnLoad: true,
+      securityLevel: "strict",
+      theme: "base",
+      fontFamily: "Manrope, Segoe UI, sans-serif",
+      themeVariables: {
+        primaryColor: "#dff6ef",
+        primaryTextColor: "#111827",
+        primaryBorderColor: "#0f766e",
+        lineColor: "#115e59",
+        secondaryColor: "#fde8cd",
+        tertiaryColor: "#ecfeff",
+        background: "#ffffff"
+      },
+      flowchart: {
+        curve: "basis"
+      },
+      sequence: {
+        actorMargin: 60,
+        mirrorActors: false
+      }
+    });
+  </script>
 </body>
 </html>
