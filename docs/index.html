@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SSI OID4VCI/OID4VP Platform | Business Digital Identity Verification - Izylife</title>
-  <meta name="description" content="Self-Sovereign Identity platform for issuing and verifying digital credentials: OID4VCI, OID4VP, mobile wallet, and TypeScript SDK for onboarding, login, and compliance." />
+  <title>Izylife SSI Ecosystem | OID4VCI/OID4VP Demo</title>
+  <meta name="description" content="Open-source SSI demo with OID4VCI and OID4VP flows, a sample holder wallet, issuer and verifier portals, and a TypeScript client SDK." />
   <meta name="robots" content="index,follow,max-image-preview:large,max-snippet:-1,max-video-preview:-1" />
   <meta name="author" content="Izylife Solutions s.r.l." />
   <meta name="theme-color" content="#141c31" />
@@ -13,13 +13,13 @@
   <meta property="og:locale" content="en_US" />
   <meta property="og:type" content="website" />
   <meta property="og:site_name" content="Izylife SSI Ecosystem" />
-  <meta property="og:title" content="Izylife SSI Ecosystem | SSI Platform for Onboarding and Identity Verification" />
-  <meta property="og:description" content="End-to-end SSI stack with OID4VCI and OID4VP to issue and verify digital credentials in business applications." />
+  <meta property="og:title" content="Izylife SSI Ecosystem | OID4VCI/OID4VP Integration Demo" />
+  <meta property="og:description" content="Explore an end-to-end SSI demonstrator with issuer and verifier portals, a sample wallet, and a TypeScript client SDK." />
   <meta property="og:url" content="https://ssi.izylifesolutions.com/" />
 
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Izylife SSI Ecosystem | Business SSI Platform" />
-  <meta name="twitter:description" content="Issue and verify digital credentials with OID4VCI/OID4VP, mobile wallet, and TypeScript SDK." />
+  <meta name="twitter:title" content="Izylife SSI Ecosystem | Open-Source SSI Demo" />
+  <meta name="twitter:description" content="Explore OID4VCI/OID4VP issuance and presentation flows in an open-source SSI demo." />
 
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -32,7 +32,7 @@
     "name": "Izylife SSI Ecosystem",
     "applicationCategory": "BusinessApplication",
     "operatingSystem": "Web, Android",
-    "description": "Open-source Self-Sovereign Identity platform for issuing and verifying digital credentials with OID4VCI and OID4VP.",
+    "description": "Open-source Self-Sovereign Identity demonstrator with OID4VCI/OID4VP flows, a sample wallet, issuer and verifier portals, and a TypeScript client SDK.",
     "url": "https://ssi.izylifesolutions.com/",
     "codeRepository": "https://github.com/gcassata74/ssi-ecosystem",
     "offers": {
@@ -65,7 +65,7 @@
         "name": "Which standards does Izylife SSI Ecosystem support?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "The platform supports OpenID for Verifiable Credential Issuance (OID4VCI), OpenID for Verifiable Presentations (OID4VP), OAuth2 with PKCE, and wallet-based verification."
+          "text": "This repository demonstrates OID4VCI issuance and OID4VP presentation flows, plus an OAuth2/PKCE verifier integration. Demonstrating these flows does not by itself establish protocol conformance or EUDI/eIDAS compliance."
         }
       },
       {
@@ -73,7 +73,7 @@
         "name": "What is it used for in business?",
         "acceptedAnswer": {
           "@type": "Answer",
-          "text": "It helps reduce onboarding and login friction, improve trust and security, and enable digital compliance processes based on verifiable credentials."
+          "text": "It provides sample components for evaluating credential-based onboarding or login workflows. Outcomes depend on the implementation, operating controls, and use case."
         }
       }
     ]
@@ -614,20 +614,19 @@
   <header id="top" class="hero">
     <div class="container">
       <div class="hero-box">
-        <span class="badge">Identity tech for regulated products and services</span>
-        <h1>SSI platform for onboarding, digital identity verification, and compliance.</h1>
+        <span class="badge">A practical starting point for SSI integration pilots</span>
+        <h1>Evaluate one credential-based onboarding flow with an end-to-end SSI demo.</h1>
         <p>
-          Izylife SSI Ecosystem reduces onboarding and login friction with identity and attribute verification
-          through open OID4VCI/OID4VP standards. Fast integration, full control, modern user experience.
+          Use the issuer, verifier, sample client, TypeScript SDK, and holder wallet to test a focused workflow—such as employee qualification checks or contractor onboarding—and identify what production would still require.
         </p>
         <div class="hero-cta">
-          <a class="btn btn-primary" href="#cta">Request a technical demo</a>
+          <a class="btn btn-primary" href="#roadmap">Explore the evaluation path</a>
           <a class="btn btn-soft" href="https://github.com/gcassata74/ssi-ecosystem/blob/main/README.md">Read the documentation</a>
         </div>
         <div class="hero-note">
           <span>Open Source AGPL-3.0</span>
-          <span>Production-ready TypeScript SDK</span>
-          <span>Mobile wallet included</span>
+          <span>TypeScript verifier integration SDK</span>
+          <span>Sample Ionic/Angular holder wallet</span>
         </div>
 
         <div class="kpi">
@@ -655,27 +654,26 @@
   <main>
     <section id="benefici" class="section-dark">
       <div class="container">
-        <div class="eyebrow">Why it works for business</div>
-        <h2>From technical project to concrete commercial leverage</h2>
+        <div class="eyebrow">What you can evaluate</div>
+        <h2>Start with one high-friction credential check</h2>
         <p class="lead">
-          The platform is designed for teams that need to deliver digital services with secure onboarding,
-          reliable access, and verifiable data governance.
+          Choose one credential journey, test how the issuer, holder wallet, verifier, and client fit together, and document the gaps before deciding whether to invest in deployment.
         </p>
         <div class="value-grid">
           <article class="value-card">
             <div class="value-icon">01</div>
-            <h3>Faster time-to-market</h3>
-            <p>Pre-orchestrated components to go live in days, not months of custom integration.</p>
+            <h3>Test the end-to-end journey</h3>
+            <p>Walk through sample credential issuance and presentation with the repository components.</p>
           </article>
           <article class="value-card">
             <div class="value-icon">02</div>
-            <h3>Compliance by design</h3>
-            <p>Standard protocols and traceable flows to support audits and regulatory requirements.</p>
+            <h3>Map integration ownership</h3>
+            <p>See how the holder wallet, verifier, and relying-party client connect through the TypeScript SDK.</p>
           </article>
           <article class="value-card">
             <div class="value-icon">03</div>
-            <h3>Measurable trust</h3>
-            <p>Real-time credential verification to reduce fraud, manual errors, and false positives.</p>
+            <h3>Make a go/no-go decision</h3>
+            <p>Agree success criteria and list the interoperability, security, privacy, and operational gaps before planning production.</p>
           </article>
         </div>
       </div>
@@ -684,20 +682,19 @@
     <section id="piattaforma">
       <div class="container">
         <div class="eyebrow">What it includes</div>
-        <h2>Platform ready for issuance, verification, and application integration</h2>
+        <h2>What the repository demonstrates</h2>
         <p class="lead">
-          A modular architecture covering issuer, verifier, wallet, and client SDK, with a modern stack and
-          flows already tested in real development environments.
+          A modular demo architecture covering issuer, verifier, holder wallet, and client SDK. The repository is a technical reference; it does not claim certification, regulatory compliance, or production readiness.
         </p>
         <div class="panel">
           <div class="panel-row">
             <div class="panel-copy">
               <h3 style="font-family:'Rubik',sans-serif;color:var(--text);font-size:1.2rem;">Key capabilities</h3>
               <ul class="check-list">
-                <li>Credential issuance with OID4VCI and cryptographic holder proof.</li>
-                <li>Presentation verification with OID4VP and user-context tokenization.</li>
+                <li>A sample credential issuance flow using OID4VCI and holder proof.</li>
+                <li>A sample presentation flow using OID4VP and verifier-side authorization.</li>
                 <li>TypeScript SDK with PKCE, callback handling, and token lifecycle management.</li>
-                <li>Mobile wallet for QR scanning, secure storage, and did:key identity management.</li>
+                <li>An Ionic/Angular sample wallet for QR-based issuance and presentation journeys.</li>
                 <li>Shared Java foundation to reduce duplication and simplify maintenance.</li>
               </ul>
             </div>
@@ -749,24 +746,24 @@
 
     <section id="roadmap" class="section-dark">
       <div class="container">
-        <div class="eyebrow">How to start</div>
-        <h2>Activation path in 3 steps</h2>
-        <p class="lead">Pragmatic approach: demo environment, client integration, and implementation of your use cases.</p>
+        <div class="eyebrow">Evaluation path</div>
+        <h2>Scope a focused pilot in three steps</h2>
+        <p class="lead">Keep the first evaluation to one credential and one relying-party journey.</p>
         <div class="steps">
           <article class="step">
             <span class="step-index">1</span>
-            <h3>Quick setup</h3>
-            <p>Start a local stack with issuer, verifier, and supporting services from the monorepo.</p>
+            <h3>Pick the workflow</h3>
+            <p>Define the credential, who issues it, which wallet holds it, and which service needs to verify it.</p>
           </article>
           <article class="step">
             <span class="step-index">2</span>
-            <h3>Application integration</h3>
-            <p>Connect your client using the TypeScript SDK and implement login based on verifiable credentials.</p>
+            <h3>Run the sample journey</h3>
+            <p>Use the demo components to examine issuance, wallet presentation, and the verifier-facing client integration.</p>
           </article>
           <article class="step">
             <span class="step-index">3</span>
-            <h3>Guided go-live</h3>
-            <p>Flow hardening, monitoring, and definition of conversion and security KPIs.</p>
+            <h3>Decide what it takes</h3>
+            <p>Record test results and the security, privacy, interoperability, operations, and compliance work still needed.</p>
           </article>
         </div>
       </div>
@@ -774,9 +771,8 @@
 
     <section id="faq">
       <div class="container">
-        <div class="eyebrow">SEO FAQ</div>
-        <h2>Frequently asked questions about SSI and digital credentials</h2>
-        <p class="lead">Section optimized for organic search across informational and commercial intent.</p>
+        <div class="eyebrow">FAQ</div>
+        <h2>Questions about the demo</h2>
         <div class="faq-grid">
           <article class="faq-item">
             <h3>What is an SSI platform?</h3>
@@ -786,17 +782,20 @@
             </p>
           </article>
           <article class="faq-item">
-            <h3>What is the difference between OID4VCI and OID4VP?</h3>
+            <h3>Which flows does the demo show?</h3>
             <p>
               OID4VCI handles issuance of digital credentials to the wallet. OID4VP handles credential presentation
               and verification during login, onboarding, or authorization.
             </p>
           </article>
           <article class="faq-item">
+            <h3>Is this certified or production-ready?</h3>
+            <p>It is presented as a demo and integration reference. The repository does not establish protocol conformance, EUDI Wallet or eIDAS compliance, security assurance, or production readiness. These require separate evidence and deployment-specific assessment.</p>
+          </article>
+          <article class="faq-item">
             <h3>Why use it in an enterprise context?</h3>
             <p>
-              It reduces fraud and user friction, improves auditability, and accelerates delivery of high-trust
-              digital services in fintech, healthtech, HR, and regulated sectors.
+              Potential benefits depend on the credential, wallet, verifier, and operating model selected. This demo does not establish fraud reduction or regulatory compliance for a deployed service.
             </p>
           </article>
         </div>
@@ -807,12 +806,12 @@
       <div class="container">
         <div class="cta">
           <div>
-            <h2>Want to validate product fit for your use case right away?</h2>
-            <p>Start from the repository and technical docs, then build an end-to-end demo with your team.</p>
+            <h2>Have one credential workflow to test?</h2>
+            <p>Start with the README, agree on success criteria, and use the demo to scope a focused integration pilot.</p>
           </div>
           <div style="display:flex;gap:0.7rem;flex-wrap:wrap;">
             <a class="btn btn-primary" href="https://github.com/gcassata74/ssi-ecosystem">Open the repository</a>
-            <a class="btn btn-soft" href="https://github.com/gcassata74/ssi-ecosystem/blob/main/README.md">Go to Quick Start</a>
+            <a class="btn btn-soft" href="https://github.com/gcassata74/ssi-ecosystem/blob/main/README.md">Read the README</a>
           </div>
         </div>
       </div>

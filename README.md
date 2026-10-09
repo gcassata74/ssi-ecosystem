@@ -17,14 +17,17 @@
   along with this program. If not, see <https://www.gnu.org/licenses/>.
 -->
 
-# Izylife SSI Ecosystem
+# Izylife SSI Ecosystem — OID4VCI/OID4VP demo
 
 ![SSI Ecosystem Architecture](./ssi-ecosystem-architecture.svg)
 
-This repository is a mono-repo for an end-to-end Self-Sovereign Identity demo. It contains a credential issuer portal, a verifier portal, a sample verifier-facing client application, a reusable authentication SDK, a shared common library, and a holder wallet. Together these modules demonstrate credential issuance with OID4VCI, credential presentation with OID4VP, verifier authorization, onboarding orchestration, and optional SPID-based operator login.
+This repository is an end-to-end Self-Sovereign Identity (SSI) demo and integration reference. It contains a credential issuer portal, a verifier portal, a sample verifier-facing client application, a TypeScript authentication SDK, a shared common library, and a holder wallet. Together, these modules demonstrate credential issuance and presentation flows using OID4VCI and OID4VP, verifier authorization, onboarding orchestration, and optional SPID-based operator login.
+
+> **Project status:** Treat this codebase as a demonstrator and starting point for integration work. Implementing OID4VCI/OID4VP flows does not by itself establish protocol conformance, EUDI Wallet or eIDAS compliance, security assurance, or production readiness. Validate interoperability, security, privacy, operational controls, and applicable regulatory requirements for your deployment before production use.
 
 ## Table of Contents
 
+- [Project Status And Intended Use](#project-status-and-intended-use)
 - [What Is In This Repo](#what-is-in-this-repo)
 - [Architecture Overview](#architecture-overview)
 - [Keycloak Role In This Demo](#keycloak-role-in-this-demo)
@@ -43,6 +46,16 @@ This repository is a mono-repo for an end-to-end Self-Sovereign Identity demo. I
 - [Project Governance](#project-governance)
 - [Development Notes](#development-notes)
 - [Troubleshooting](#troubleshooting)
+
+## Project Status And Intended Use
+
+Use this repository to inspect the end-to-end flows, evaluate the sample wallet and portals, and explore how a client application can integrate through the TypeScript SDK. It is not presented as a certified product or a turnkey production deployment. A production project needs a defined use case, interoperability testing with the intended wallets and issuers, a security and privacy review, operational design, and jurisdiction-specific compliance assessment.
+
+A practical evaluation is to select one workflow—such as employee qualification checks or contractor onboarding—and validate the required credential, wallet, verifier, and client integrations with the relevant stakeholders.
+
+### A focused pilot
+
+For an integrator or product team, keep the first engagement narrow: choose one credential and one relying-party journey, then use this demo to map issuer, holder-wallet, verifier, and client responsibilities. Agree on acceptance criteria before implementation—for example, successful issuance and presentation with the intended wallet, clear failure handling, and a documented list of security, privacy, operations, and compliance gaps. The result should be an integration decision and a scoped production plan, not an assumption that the demo is ready to deploy.
 
 ## What Is In This Repo
 
